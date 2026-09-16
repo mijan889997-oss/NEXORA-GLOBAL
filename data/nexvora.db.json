@@ -1,0 +1,474 @@
+{
+  "users": [
+    {
+      "id": "usr_superadmin_001",
+      "email": "admin@nexvora.global",
+      "passwordHash": "$2b$10$C/yeQkg8f9jj8tiDG1E/Q.72iaZcDfKCAj6ncR5XLvJFCttdtBoIO",
+      "fullName": "Super Administrator",
+      "username": "superadmin",
+      "phone": "+18005550199",
+      "role": "SUPER ADMIN",
+      "status": "active",
+      "referralCode": "NEXVORA_FOUNDER",
+      "emailVerified": true,
+      "createdAt": "2026-09-08T12:15:36.688Z",
+      "updatedAt": "2026-09-08T12:15:36.688Z",
+      "lastDailyBonusClaimAt": "2026-09-09T19:39:14.271Z",
+      "dailyBonusStreak": 1
+    },
+    {
+      "id": "usr_1789095361946_x8xkf",
+      "email": "testworker@example.com",
+      "passwordHash": "$2b$10$ABf4nbkTJdHKq/cx.i29Du9v7noFm/5nKgfe8QGSaH9dSN5skpXR6",
+      "fullName": "Test Worker",
+      "username": "testworker",
+      "phone": "",
+      "role": "USER",
+      "status": "active",
+      "referralCode": "TEST1197",
+      "emailVerified": false,
+      "createdAt": "2026-09-11T02:56:01.946Z",
+      "updatedAt": "2026-09-11T02:56:01.946Z"
+    }
+  ],
+  "profiles": [
+    {
+      "id": "prof_superadmin_001",
+      "userId": "usr_superadmin_001",
+      "bio": "Platform founder and system governance officer.",
+      "headline": "Executive Platform Architect",
+      "skills": [
+        "Digital Marketing",
+        "System Governance",
+        "FinTech Architecture"
+      ],
+      "languages": [
+        "English"
+      ],
+      "country": "Global",
+      "kycStatus": "verified",
+      "updatedAt": "2026-09-08T12:15:36.688Z"
+    },
+    {
+      "id": "prof_usr_1789095361946_x8xkf",
+      "userId": "usr_1789095361946_x8xkf",
+      "headline": "Digital Freelancer & Learner",
+      "bio": "",
+      "skills": [],
+      "languages": [
+        "English"
+      ],
+      "country": "Global",
+      "kycStatus": "unsubmitted",
+      "updatedAt": "2026-09-11T02:56:01.946Z"
+    }
+  ],
+  "roles": [
+    {
+      "role": "SUPER ADMIN",
+      "description": "Complete systemic control over platform, security, finances, content, and users.",
+      "permissions": [
+        "*"
+      ]
+    },
+    {
+      "role": "ADMIN",
+      "description": "General system administration, user verification, job and order oversight.",
+      "permissions": [
+        "users.manage",
+        "services.moderate",
+        "jobs.moderate",
+        "disputes.manage",
+        "reports.view"
+      ]
+    },
+    {
+      "role": "FINANCE ADMIN",
+      "description": "Authorized to review ledger transactions, approve withdrawals, and audit revenue.",
+      "permissions": [
+        "wallets.audit",
+        "withdrawals.review",
+        "withdrawals.approve",
+        "payments.configure",
+        "transactions.view"
+      ]
+    },
+    {
+      "role": "MODERATOR",
+      "description": "Oversees community content, reviews, comments, and flags suspicious activity.",
+      "permissions": [
+        "reviews.moderate",
+        "services.moderate",
+        "jobs.moderate",
+        "disputes.read"
+      ]
+    },
+    {
+      "role": "SUPPORT ADMIN",
+      "description": "Handles support requests, dispute mediation, and user communications.",
+      "permissions": [
+        "disputes.manage",
+        "support.reply",
+        "users.read"
+      ]
+    },
+    {
+      "role": "CONTENT ADMIN",
+      "description": "Publishes curated courses, educational lessons, and platform tasks.",
+      "permissions": [
+        "courses.manage",
+        "tasks.manage",
+        "products.manage"
+      ]
+    },
+    {
+      "role": "USER",
+      "description": "Standard member eligible to work, learn, offer marketing services, and affiliate.",
+      "permissions": [
+        "marketplace.participate",
+        "wallet.view",
+        "wallet.withdraw",
+        "learn.access"
+      ]
+    }
+  ],
+  "services": [
+    {
+      "id": "srv_photo_001",
+      "userId": "usr_superadmin_001",
+      "title": "Background Removal & Bulk Photo Editing",
+      "slug": "background-removal-bulk-photo-editing",
+      "category": "Graphics & Design",
+      "description": "Professional e-commerce product background removal and high-volume photo editing. Get clean transparent PNG cutouts, 100% pure Amazon/eBay/Shopify compliant white backgrounds, and razor-sharp hand-drawn clipping paths for high-converting store listings.",
+      "pricingTier": {
+        "basicPrice": 5,
+        "basicDeliveryDays": 1,
+        "basicDescription": "10 E-Commerce Products: Precise clipping path, pure white (#FFFFFF) or transparent PNG, shadow creation & web-ready export."
+      },
+      "tags": [
+        "Background Removal",
+        "Bulk Photo Editing",
+        "Transparent PNG",
+        "White Background",
+        "Clipping Path",
+        "E-Commerce Editing",
+        "Amazon Ready",
+        "Shopify"
+      ],
+      "features": [
+        "Transparent PNG (Alpha Cutout)",
+        "Pure White Background (#FFFFFF Amazon & Shopify Standard)",
+        "Hand-Drawn Precise Clipping Path",
+        "Bulk Photo Editing & High-Volume Processing",
+        "Natural, Drop & Reflection Shadow Creation",
+        "Product Retouching & Dust/Blemish Cleanup",
+        "Commercial Use & High-Resolution 300 DPI Web Export"
+      ],
+      "fiverrUrl": "https://www.fiverr.com/mdmijan4",
+      "rating": 5,
+      "reviewsCount": 148,
+      "sellerName": "Mijanur Rahman (mdmijan4)",
+      "sellerUsername": "mdmijan4",
+      "status": "active",
+      "createdAt": "2026-09-11T06:01:19.366Z",
+      "updatedAt": "2026-09-11T06:01:19.366Z"
+    }
+  ],
+  "jobs": [],
+  "proposals": [],
+  "orders": [],
+  "tasks": [],
+  "task_submissions": [],
+  "courses": [],
+  "lessons": [],
+  "products": [],
+  "product_orders": [],
+  "affiliate_programs": [],
+  "affiliate_clicks": [],
+  "affiliate_conversions": [],
+  "referrals": [],
+  "wallets": [
+    {
+      "id": "wal_superadmin_001",
+      "userId": "usr_superadmin_001",
+      "availableBalance": 0.022,
+      "pendingBalance": 0,
+      "totalEarned": 0.022,
+      "totalWithdrawn": 0,
+      "currency": "USD",
+      "updatedAt": "2026-09-11T10:11:39.317Z"
+    },
+    {
+      "id": "wal_usr_1789095361946_x8xkf",
+      "userId": "usr_1789095361946_x8xkf",
+      "availableBalance": 0.003,
+      "pendingBalance": 0,
+      "totalEarned": 0.003,
+      "totalWithdrawn": 0,
+      "currency": "USD",
+      "updatedAt": "2026-09-11T03:14:07.009Z"
+    }
+  ],
+  "transactions": [
+    {
+      "id": "tx_1789121499317_2nrx85",
+      "walletId": "wal_superadmin_001",
+      "userId": "usr_superadmin_001",
+      "type": "Earning",
+      "amount": 0.01,
+      "balanceAfter": 0.022,
+      "referenceType": "sponsored_ad",
+      "referenceId": "adsterra_usr_superadmin_001_1789121499317",
+      "description": "Adsterra Sponsored Ad Reward (+10 Points / $0.01)",
+      "createdAt": "2026-09-11T10:11:39.317Z"
+    },
+    {
+      "id": "tx_1789096447009_vzblsy",
+      "walletId": "wal_usr_1789095361946_x8xkf",
+      "userId": "usr_1789095361946_x8xkf",
+      "type": "Earning",
+      "amount": 0.001,
+      "balanceAfter": 0.003,
+      "referenceType": "captcha_solve",
+      "referenceId": "cap_1789096446122_57c3ad62",
+      "description": "2Captcha Worker Reward (50% Split) - Solved Challenge #17890964 (Total Value: $0.0020 USD, Worker Share: $0.0010)",
+      "createdAt": "2026-09-11T03:14:07.009Z"
+    },
+    {
+      "id": "tx_1789096438428_vqp0e5",
+      "walletId": "wal_usr_1789095361946_x8xkf",
+      "userId": "usr_1789095361946_x8xkf",
+      "type": "Earning",
+      "amount": 0.001,
+      "balanceAfter": 0.002,
+      "referenceType": "captcha_solve",
+      "referenceId": "cap_1789096437461_557781fb",
+      "description": "2Captcha Worker Reward (50% Split) - Solved Challenge #17890964 (Total Value: $0.0020 USD, Worker Share: $0.0010)",
+      "createdAt": "2026-09-11T03:13:58.428Z"
+    },
+    {
+      "id": "tx_1789096097315_cm9wep",
+      "walletId": "wal_superadmin_001",
+      "userId": "usr_superadmin_001",
+      "type": "Earning",
+      "amount": 0.001,
+      "balanceAfter": 0.012,
+      "referenceType": "captcha_solve",
+      "referenceId": "cap_1789096070500_2d05f14f",
+      "description": "2Captcha Worker Reward (50% Split) - Solved Challenge #17890960 (Total Value: $0.0020 USD, Worker Share: $0.0010)",
+      "createdAt": "2026-09-11T03:08:17.315Z"
+    },
+    {
+      "id": "tx_1789096070499_vwdi1w",
+      "walletId": "wal_superadmin_001",
+      "userId": "usr_superadmin_001",
+      "type": "Earning",
+      "amount": 0.001,
+      "balanceAfter": 0.011,
+      "referenceType": "captcha_solve",
+      "referenceId": "cap_1789096042486_b0ef2efa",
+      "description": "2Captcha Worker Reward (50% Split) - Solved Challenge #17890960 (Total Value: $0.0020 USD, Worker Share: $0.0010)",
+      "createdAt": "2026-09-11T03:07:50.499Z"
+    },
+    {
+      "id": "tx_1789095387513_7xrmpm",
+      "walletId": "wal_usr_1789095361946_x8xkf",
+      "userId": "usr_1789095361946_x8xkf",
+      "type": "Earning",
+      "amount": 0.001,
+      "balanceAfter": 0.001,
+      "referenceType": "captcha_solve",
+      "referenceId": "cap_1789095386678_ffaad792",
+      "description": "2Captcha Worker Reward (50% Split) - Solved Challenge #17890953 (Total Value: $0.0020 USD, Worker Share: $0.0010)",
+      "createdAt": "2026-09-11T02:56:27.513Z"
+    }
+  ],
+  "withdrawals": [],
+  "payments": [
+    {
+      "id": "bKash Personal",
+      "name": "bKash Personal",
+      "isConfigured": true,
+      "statusMessage": "Active & Operational (Manual / Direct Payout)",
+      "minWithdrawal": 0.5,
+      "maxWithdrawal": 500,
+      "feePercentage": 0,
+      "processingTime": "Instant / 1-4 Hours",
+      "supportedCurrencies": [
+        "BDT",
+        "USD"
+      ]
+    },
+    {
+      "id": "Nagad Personal",
+      "name": "Nagad Personal",
+      "isConfigured": true,
+      "statusMessage": "Active & Operational (Manual / Direct Payout)",
+      "minWithdrawal": 0.5,
+      "maxWithdrawal": 500,
+      "feePercentage": 0,
+      "processingTime": "Instant / 1-4 Hours",
+      "supportedCurrencies": [
+        "BDT",
+        "USD"
+      ]
+    },
+    {
+      "id": "Rocket Personal",
+      "name": "Rocket Personal",
+      "isConfigured": true,
+      "statusMessage": "Active & Operational (Manual / Direct Payout)",
+      "minWithdrawal": 0.5,
+      "maxWithdrawal": 500,
+      "feePercentage": 0,
+      "processingTime": "Instant / 1-4 Hours",
+      "supportedCurrencies": [
+        "BDT",
+        "USD"
+      ]
+    },
+    {
+      "id": "USDT / Binance Pay",
+      "name": "USDT / Binance Pay",
+      "isConfigured": true,
+      "statusMessage": "Active & Operational (Manual / Direct Payout)",
+      "minWithdrawal": 1,
+      "maxWithdrawal": 1000,
+      "feePercentage": 0,
+      "processingTime": "Instant / 30-60 Minutes",
+      "supportedCurrencies": [
+        "USDT",
+        "USD"
+      ]
+    }
+  ],
+  "notifications": [
+    {
+      "id": "notif_1789095362065",
+      "userId": "usr_1789095361946_x8xkf",
+      "title": "Welcome to NEXVORA GLOBAL",
+      "message": "Explore vetted digital marketing services, verified tasks, and skill certifications.",
+      "type": "system",
+      "read": false,
+      "createdAt": "2026-09-11T02:56:01.946Z"
+    },
+    {
+      "id": "notif_1789121499318_8vxg",
+      "userId": "usr_superadmin_001",
+      "title": "+10 Points Credited! 🎉",
+      "message": "সাফল্য! Adsterra স্পন্সরড অ্যাড টাস্ক সম্পন্ন করার জন্য আপনার অ্যাকাউন্টে 10 পয়েন্ট ($0.01) যোগ করা হয়েছে।",
+      "type": "wallet",
+      "link": "/earn",
+      "read": false,
+      "createdAt": "2026-09-11T10:11:39.318Z"
+    }
+  ],
+  "messages": [],
+  "reviews": [],
+  "disputes": [],
+  "audit_logs": [
+    {
+      "id": "aud_1789096447009_bqrf",
+      "actorId": "usr_1789095361946_x8xkf",
+      "actorEmail": "testworker@example.com",
+      "action": "2CAPTCHA_REVENUE_SPLIT",
+      "targetModel": "wallets",
+      "targetId": "cap_1789096446122_57c3ad62",
+      "details": "2Captcha Solved: Total $0.0020 USD. Awarded 50% to Worker: +$0.0010 USD (+1 Coins). Retained 50% Platform Profit: +$0.0010 USD. New Balance: $0.00.",
+      "timestamp": "2026-09-11T03:14:07.009Z"
+    },
+    {
+      "id": "aud_1789096438429_q6ye",
+      "actorId": "usr_1789095361946_x8xkf",
+      "actorEmail": "testworker@example.com",
+      "action": "2CAPTCHA_REVENUE_SPLIT",
+      "targetModel": "wallets",
+      "targetId": "cap_1789096437461_557781fb",
+      "details": "2Captcha Solved: Total $0.0020 USD. Awarded 50% to Worker: +$0.0010 USD (+1 Coins). Retained 50% Platform Profit: +$0.0010 USD. New Balance: $0.00.",
+      "timestamp": "2026-09-11T03:13:58.429Z"
+    },
+    {
+      "id": "aud_1789096406026_6qc1",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "2CAPTCHA_SETTINGS_UPDATED",
+      "targetModel": "system_settings",
+      "targetId": "2captcha",
+      "details": "Updated 2Captcha Worker Settings: Reward=1 coins, Interval=3s, Timer=30s, Enabled=true",
+      "timestamp": "2026-09-11T03:13:26.027Z"
+    },
+    {
+      "id": "aud_1789096097316_4x96",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "2CAPTCHA_REVENUE_SPLIT",
+      "targetModel": "wallets",
+      "targetId": "cap_1789096070500_2d05f14f",
+      "details": "2Captcha Solved: Total $0.0020 USD. Awarded 50% to Worker: +$0.0010 USD (+1 Coins). Retained 50% Platform Profit: +$0.0010 USD. New Balance: $0.01.",
+      "timestamp": "2026-09-11T03:08:17.316Z"
+    },
+    {
+      "id": "aud_1789096070500_12p2",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "2CAPTCHA_REVENUE_SPLIT",
+      "targetModel": "wallets",
+      "targetId": "cap_1789096042486_b0ef2efa",
+      "details": "2Captcha Solved: Total $0.0020 USD. Awarded 50% to Worker: +$0.0010 USD (+1 Coins). Retained 50% Platform Profit: +$0.0010 USD. New Balance: $0.01.",
+      "timestamp": "2026-09-11T03:07:50.500Z"
+    },
+    {
+      "id": "aud_1789095400154_wsct",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "USER_LOGIN",
+      "targetModel": "users",
+      "targetId": "usr_superadmin_001",
+      "details": "User signed in successfully",
+      "timestamp": "2026-09-11T02:56:40.154Z"
+    },
+    {
+      "id": "aud_1789095387514_98dj",
+      "actorId": "usr_1789095361946_x8xkf",
+      "actorEmail": "testworker@example.com",
+      "action": "2CAPTCHA_REVENUE_SPLIT",
+      "targetModel": "wallets",
+      "targetId": "cap_1789095386678_ffaad792",
+      "details": "2Captcha Solved: Total $0.0020 USD. Awarded 50% to Worker: +$0.0010 USD (+1 Coins). Retained 50% Platform Profit: +$0.0010 USD. New Balance: $0.00.",
+      "timestamp": "2026-09-11T02:56:27.514Z"
+    },
+    {
+      "id": "aud_1789095362065_v72b",
+      "actorId": "usr_1789095361946_x8xkf",
+      "actorEmail": "testworker@example.com",
+      "action": "USER_REGISTERED",
+      "targetModel": "users",
+      "targetId": "usr_1789095361946_x8xkf",
+      "details": "New user registered account",
+      "timestamp": "2026-09-11T02:56:02.065Z"
+    }
+  ],
+  "settings": {
+    "id": "system_default",
+    "platformName": "NEXVORA GLOBAL",
+    "tagline": "Learn • Work • Grow • Earn",
+    "supportEmail": "support@nexvora.global",
+    "platformFeePercent": 10,
+    "minWithdrawalUsd": 20,
+    "requireKycForWithdrawal": true,
+    "maintenanceMode": false,
+    "earningsDisclaimer": "Income is not guaranteed. Earnings depend on skills, effort, demand, completed work, approved transactions and applicable program terms.",
+    "allowRegistration": true,
+    "gatewayStatus": {
+      "bKash": false,
+      "Nagad": false,
+      "Bank Transfer": false,
+      "PayPal": false,
+      "Payoneer": false,
+      "USDT/Crypto": false
+    },
+    "updatedAt": "2026-09-08T12:15:36.688Z"
+  },
+  "task_completions": [],
+  "daily_claims": []
+}
