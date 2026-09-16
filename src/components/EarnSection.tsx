@@ -11,7 +11,8 @@ import {
   RotateCcw,
   ShieldCheck,
   Zap,
-  ArrowRight
+  ArrowRight,
+  AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -486,59 +487,69 @@ export const EarnSection: React.FC<EarnSectionProps> = ({
       </div>
 
       {/* Task Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-        {filteredTasks.map((task) => {
-          const isCompleted = completedTaskIds.includes(task.id);
-          const badgeClass =
-            task.badgeBg ||
-            (task.network === 'Adsterra'
-              ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-              : task.network === 'Monetag'
-              ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-              : 'bg-purple-500/10 text-purple-400 border-purple-500/20');
+      {filteredTasks.length === 0 ? (
+        <div className="bg-slate-900/50 border border-slate-800 p-10 rounded-2xl text-center space-y-2 col-span-full">
+          <AlertCircle className="w-8 h-8 text-slate-500 mx-auto" />
+          <h3 className="text-sm font-bold text-white font-['Space_Grotesk']">No tasks available right now</h3>
+          <p className="text-xs text-slate-400 max-w-sm mx-auto">
+            There are currently no tasks available in this category. Please check back later.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          {filteredTasks.map((task) => {
+            const isCompleted = completedTaskIds.includes(task.id);
+            const badgeClass =
+              task.badgeBg ||
+              (task.network === 'Adsterra'
+                ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                : task.network === 'Monetag'
+                ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                : 'bg-purple-500/10 text-purple-400 border-purple-500/20');
 
-          return (
-            <div 
-              key={task.id} 
-              className="bg-slate-900 border border-slate-800 hover:border-slate-700/80 rounded-xl p-4 flex flex-col justify-between gap-3 shadow-sm transition-all"
-            >
-              <div>
-                <div className="flex justify-between items-center">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${badgeClass}`}>
-                    {task.network}
-                  </span>
-                  <span className="text-[11px] text-slate-400 flex items-center gap-1 font-mono">
-                    <Clock className="w-3 h-3 text-slate-500" /> {task.timer}s
-                  </span>
+            return (
+              <div 
+                key={task.id} 
+                className="bg-slate-900 border border-slate-800 hover:border-slate-700/80 rounded-xl p-4 flex flex-col justify-between gap-3 shadow-sm transition-all"
+              >
+                <div>
+                  <div className="flex justify-between items-center">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${badgeClass}`}>
+                      {task.network}
+                    </span>
+                    <span className="text-[11px] text-slate-400 flex items-center gap-1 font-mono">
+                      <Clock className="w-3 h-3 text-slate-500" /> {task.timer}s
+                    </span>
+                  </div>
+                  <h3 className="text-sm font-bold text-white mt-2.5 leading-snug">{task.title}</h3>
+                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">{task.desc}</p>
                 </div>
-                <h3 className="text-sm font-bold text-white mt-2.5 leading-snug">{task.title}</h3>
-                <p className="text-xs text-slate-400 mt-1 leading-relaxed">{task.desc}</p>
-              </div>
 
-              <div className="flex justify-between items-center pt-2.5 border-t border-slate-800">
-                <span className="text-emerald-400 font-bold text-xs">
-                  +{task.points} PTS <span className="text-[10px] text-slate-500 font-normal">(${(task.points / 1000).toFixed(2)})</span>
-                </span>
-                {isCompleted ? (
-                  <button
-                    onClick={() => handleStartTask(task)}
-                    className="px-2.5 py-1.5 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-xs font-semibold rounded-lg flex items-center gap-1 transition-all border border-emerald-500/20 cursor-pointer"
-                  >
-                    <CheckCircle2 className="w-3 h-3" /> পুনরায় করুন
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleStartTask(task)}
-                    className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer"
-                  >
-                    ভিজিট করুন <ExternalLink className="w-3 h-3" />
-                  </button>
-                )}
+                <div className="flex justify-between items-center pt-2.5 border-t border-slate-800">
+                  <span className="text-emerald-400 font-bold text-xs">
+                    +{task.points} PTS <span className="text-[10px] text-slate-500 font-normal">(${(task.points / 1000).toFixed(2)})</span>
+                  </span>
+                  {isCompleted ? (
+                    <button
+                      onClick={() => handleStartTask(task)}
+                      className="px-2.5 py-1.5 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-xs font-semibold rounded-lg flex items-center gap-1 transition-all border border-emerald-500/20 cursor-pointer"
+                    >
+                      <CheckCircle2 className="w-3 h-3" /> পুনরায় করুন
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleStartTask(task)}
+                      className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer"
+                    >
+                      ভিজিট করুন <ExternalLink className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Timer & Claim Modal */}
       {activeTask && (

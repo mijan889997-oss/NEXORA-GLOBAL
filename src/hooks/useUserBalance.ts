@@ -60,20 +60,7 @@ export const useUserBalance = (): UserBalanceData => {
     }
   }, [user, wallet]);
 
-  // Synchronize wallet if local stored points/demo balance is higher than wallet state
-  useEffect(() => {
-    if (wallet && typeof wallet.availableBalance === 'number' && points > 0) {
-      const ptsUsd = Number((points / 1000).toFixed(2));
-      if (ptsUsd > wallet.availableBalance) {
-        window.dispatchEvent(
-          new CustomEvent('balanceUpdated', {
-            detail: { newBalance: ptsUsd, points: points },
-          })
-        );
-      }
-    }
-  }, [wallet?.availableBalance, points]);
-
+  // Remove any reactive window event dispatch here to prevent infinite loop cycles with components listening to balanceUpdated
   useEffect(() => {
     syncPoints();
 
@@ -90,10 +77,10 @@ export const useUserBalance = (): UserBalanceData => {
             const row = Array.isArray(data) ? data[0] : data;
             if (row?.points !== undefined && row?.points !== null) {
               const supaPts = Number(row.points);
-              setPoints((prev) => Math.max(prev || 0, supaPts));
+              setPoints((prev) => (prev !== supaPts && supaPts > (prev || 0) ? supaPts : prev));
             } else if (row?.balance !== undefined && row?.balance !== null) {
               const supaPts = Math.round(Number(row.balance) * 1000);
-              setPoints((prev) => Math.max(prev || 0, supaPts));
+              setPoints((prev) => (prev !== supaPts && supaPts > (prev || 0) ? supaPts : prev));
             }
           }
         })

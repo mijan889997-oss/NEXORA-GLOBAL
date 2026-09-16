@@ -44,6 +44,7 @@ import { AdminRewardSettings } from '../../components/AdminRewardSettings';
 import { AdminVideoTaskSettings } from '../../components/AdminVideoTaskSettings';
 import { AdminSupportTickets } from '../../components/AdminSupportTickets';
 import {
+  supabase,
   fetchSupabaseMicrotasks,
   insertSupabaseMicrotask,
   updateSupabaseMicrotask,
@@ -574,7 +575,45 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
       console.warn('LocalStorage error on submission approval:', e);
     }
 
-    // Supabase submission status update
+    // Supabase submission status update and user balance crediting
+    const targetSub = taskSubmissions.find((s) => s.id === subId);
+    if (targetSub?.userId) {
+      const rewardCoins = targetSub.rewardCoins || (targetSub.rewardAmount ? Math.round(targetSub.rewardAmount * 1000) : 25);
+      const rewardUsd = targetSub.rewardAmount || Number((rewardCoins / 1000).toFixed(4));
+
+      // Direct profile balance increment in Supabase
+      (async () => {
+        try {
+          const { data } = await supabase
+            .from('profiles')
+            .select('points, balance')
+            .eq('id', targetSub.userId)
+            .single();
+
+          if (data) {
+            const currentPts = Number((data as any).points || 0);
+            const currentBal = Number((data as any).balance || 0);
+            await supabase
+              .from('profiles')
+              .update({
+                points: currentPts + rewardCoins,
+                balance: Number((currentBal + rewardUsd).toFixed(4)),
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', targetSub.userId);
+          }
+        } catch (err) {
+          console.warn('Supabase balance credit notice:', err);
+        }
+      })();
+
+      try {
+        const uKey = `points_${targetSub.userId}`;
+        const existingPts = parseInt(localStorage.getItem(uKey) || '0', 10);
+        localStorage.setItem(uKey, (existingPts + rewardCoins).toString());
+      } catch {}
+    }
+
     updateSupabaseSubmissionStatus(subId, 'approved', undefined, user?.email || 'Admin').catch((err) =>
       console.warn('[Supabase] Submission approve status sync:', err)
     );

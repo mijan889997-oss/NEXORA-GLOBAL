@@ -1745,10 +1745,10 @@ async function processTaskProofSubmission(req: AuthRequest, res: Response): Prom
     if (!task) {
       task = {
         id: taskId,
-        title: req.body.taskTitle || (taskId === 'TASK-101' ? 'Sign up and verify profile on partner website' : taskId === 'TASK-102' ? 'App feedback & UI bug testing' : 'Verified Microtask'),
-        category: req.body.taskCategory || (taskId === 'TASK-102' ? 'Quality Assurance' : 'Microtask'),
-        rewardAmount: typeof req.body.reward === 'number' ? req.body.reward : typeof req.body.rewardAmount === 'number' ? req.body.rewardAmount : (taskId === 'TASK-102' ? 1.50 : 0.50),
-        rewardCoins: typeof req.body.rewardCoins === 'number' ? req.body.rewardCoins : Math.round((typeof req.body.reward === 'number' ? req.body.reward : (taskId === 'TASK-102' ? 1.50 : 0.50)) * 1000),
+        title: req.body.taskTitle || 'Verified Microtask',
+        category: req.body.taskCategory || 'Microtask',
+        rewardAmount: typeof req.body.reward === 'number' ? req.body.reward : typeof req.body.rewardAmount === 'number' ? req.body.rewardAmount : 0.50,
+        rewardCoins: typeof req.body.rewardCoins === 'number' ? req.body.rewardCoins : Math.round((typeof req.body.reward === 'number' ? req.body.reward : 0.50) * 1000),
         status: 'active',
         totalSlots: 100,
         slotsRemaining: 99,
