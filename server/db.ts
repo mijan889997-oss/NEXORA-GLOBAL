@@ -163,6 +163,139 @@ class DatabaseEngine {
         if (!parsed.jobs) parsed.jobs = [];
         if (!parsed.products) parsed.products = [];
         if (!parsed.users) parsed.users = [];
+        if (!parsed.withdrawals) parsed.withdrawals = [];
+        if (!parsed.task_submissions) parsed.task_submissions = [];
+
+        // Ensure default seed withdrawals exist if empty
+        if (parsed.withdrawals.length === 0) {
+          const nowIso = new Date().toISOString();
+          parsed.withdrawals = [
+            {
+              id: 'wd_seed_001',
+              withdrawalNumber: 'WD-2026-89101',
+              userId: 'usr_1789095361946_x8xkf',
+              userName: 'Test Worker',
+              userEmail: 'testworker@example.com',
+              amount: 15.00,
+              fee: 0,
+              netAmount: 15.00,
+              paymentMethod: 'bKash Personal',
+              method: 'bKash Personal',
+              accountDetails: {
+                accountNumber: '01712345678',
+                emailOrWalletAddress: '01712345678',
+              },
+              accountNumber: '01712345678',
+              status: 'Pending',
+              createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+              updatedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+            },
+            {
+              id: 'wd_seed_002',
+              withdrawalNumber: 'WD-2026-89102',
+              userId: 'usr_1789095361946_x8xkf',
+              userName: 'Test Worker',
+              userEmail: 'testworker@example.com',
+              amount: 25.00,
+              fee: 0,
+              netAmount: 25.00,
+              paymentMethod: 'Nagad Personal',
+              method: 'Nagad Personal',
+              accountDetails: {
+                accountNumber: '01898765432',
+                emailOrWalletAddress: '01898765432',
+              },
+              accountNumber: '01898765432',
+              status: 'Completed',
+              createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+              updatedAt: new Date(Date.now() - 86400000).toISOString(),
+            },
+            {
+              id: 'wd_seed_003',
+              withdrawalNumber: 'WD-2026-89103',
+              userId: 'usr_seed_earner_002',
+              userName: 'Elena Rostova',
+              userEmail: 'elena.rostova@nexvora.com',
+              amount: 10.00,
+              fee: 0,
+              netAmount: 10.00,
+              paymentMethod: 'Rocket Personal',
+              method: 'Rocket Personal',
+              accountDetails: {
+                accountNumber: '01987654321',
+                emailOrWalletAddress: '01987654321',
+              },
+              accountNumber: '01987654321',
+              status: 'Pending',
+              createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
+              updatedAt: new Date(Date.now() - 3600000 * 5).toISOString(),
+            },
+          ];
+        }
+
+        // Ensure default seed task submissions exist if empty
+        if (parsed.task_submissions.length === 0) {
+          parsed.task_submissions = [
+            {
+              id: 'sub_seed_001',
+              taskId: 'adsterra_1',
+              taskTitle: 'Adsterra প্রিমিয়াম স্পন্সরড ভিজিট ১',
+              taskCategory: 'Visit & Earn',
+              userId: 'usr_1789095361946_x8xkf',
+              userName: 'Test Worker',
+              userEmail: 'testworker@example.com',
+              rewardAmount: 0.02,
+              proofData: {
+                textNotes: 'Visited target page and completed full 15s session duration.',
+                screenshotUrl: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=400&q=80',
+                proofUrl: 'https://www.profitableratecpmnetwork.com/yct17pt7yz',
+              },
+              status: 'pending_review',
+              submittedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+              createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+              updatedAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+            },
+            {
+              id: 'sub_seed_002',
+              taskId: 'monetag_1',
+              taskTitle: 'Monetag স্মার্টলিঙ্ক টাস্ক ১',
+              taskCategory: 'Sponsored',
+              userId: 'usr_seed_earner_002',
+              userName: 'Elena Rostova',
+              userEmail: 'elena.rostova@nexvora.com',
+              rewardAmount: 0.02,
+              proofData: {
+                textNotes: 'Verified smartlink action and confirmed redirect url.',
+                proofUrl: 'https://omg10.com/4/11775258',
+              },
+              status: 'approved',
+              reviewedBy: 'usr_superadmin_001',
+              reviewedAt: new Date(Date.now() - 3600000 * 6).toISOString(),
+              submittedAt: new Date(Date.now() - 3600000 * 8).toISOString(),
+              createdAt: new Date(Date.now() - 3600000 * 8).toISOString(),
+              updatedAt: new Date(Date.now() - 3600000 * 6).toISOString(),
+            },
+          ];
+        }
+
+        // Ensure registered seed users exist
+        if (!parsed.users.some((u: any) => u.email === 'elena.rostova@nexvora.com')) {
+          parsed.users.push({
+            id: 'usr_seed_earner_002',
+            email: 'elena.rostova@nexvora.com',
+            passwordHash: '***',
+            fullName: 'Elena Rostova',
+            username: 'elena_r',
+            phone: '+18005550188',
+            role: 'USER',
+            status: 'active',
+            referralCode: 'ELENA_PRO',
+            emailVerified: true,
+            createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+        }
+
         if (parsed.settings) {
           if (parsed.settings.videoTaskLimit === undefined) parsed.settings.videoTaskLimit = 10;
           if (parsed.settings.videoTaskCooldown === undefined) parsed.settings.videoTaskCooldown = 30;

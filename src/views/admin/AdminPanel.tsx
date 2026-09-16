@@ -208,26 +208,92 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
     if (!isAuthorized) return;
     setLoading(true);
     try {
-      const [ov, us, tk, wd, gw, lg, ky, ts, gws, srv, jb, prd, tka, sbTasks, sbSubs, sbWds, dspRes, sbProfiles, sbTickets] = await Promise.all([
-        apiFetch('/api/admin/overview'),
-        apiFetch('/api/admin/users'),
-        apiFetch('/api/admin/tasks'),
-        apiFetch('/api/admin/withdrawals'),
-        apiFetch('/api/admin/payment-gateways'),
-        apiFetch('/api/admin/audit-logs'),
-        apiFetch('/api/admin/verifications'),
-        apiFetch('/api/admin/task-submissions'),
+      const [
+        ov,
+        us,
+        tk,
+        wd,
+        gw,
+        lg,
+        ky,
+        ts,
+        gws,
+        srv,
+        jb,
+        prd,
+        tka,
+        sbTasks,
+        sbSubs,
+        sbWds,
+        dspRes,
+        sbProfiles,
+        sbTickets,
+      ] = await Promise.all([
+        apiFetch('/api/admin/overview').catch((err) => {
+          console.error('[Admin API Error] /api/admin/overview failed:', err);
+          return { overview: null };
+        }),
+        apiFetch('/api/admin/users').catch((err) => {
+          console.error('[Admin API Error] /api/admin/users failed:', err);
+          return { users: [] };
+        }),
+        apiFetch('/api/admin/tasks').catch((err) => {
+          console.error('[Admin API Error] /api/admin/tasks failed:', err);
+          return { tasks: [] };
+        }),
+        apiFetch('/api/admin/withdrawals').catch((err) => {
+          console.error('[Admin API Error] /api/admin/withdrawals failed:', err);
+          return { withdrawals: [] };
+        }),
+        apiFetch('/api/admin/payment-gateways').catch((err) => {
+          console.error('[Admin API Error] /api/admin/payment-gateways failed:', err);
+          return { gateways: [] };
+        }),
+        apiFetch('/api/admin/audit-logs').catch((err) => {
+          console.error('[Admin API Error] /api/admin/audit-logs failed:', err);
+          return { audit_logs: [] };
+        }),
+        apiFetch('/api/admin/verifications').catch((err) => {
+          console.error('[Admin API Error] /api/admin/verifications failed:', err);
+          return { verifications: [] };
+        }),
+        apiFetch('/api/admin/task-submissions')
+          .catch((err) => {
+            console.error('[Admin API Error] /api/admin/task-submissions failed, trying /api/admin/submissions:', err);
+            return apiFetch('/api/admin/submissions');
+          })
+          .catch((err2) => {
+            console.error('[Admin API Error] /api/admin/submissions failed:', err2);
+            return { submissions: [] };
+          }),
         apiFetch('/api/admin/payment-gateways/specifications').catch(() => ({ specifications: [] })),
         apiFetch('/api/services').catch(() => ({ services: [] })),
         apiFetch('/api/jobs').catch(() => ({ jobs: [] })),
         apiFetch('/api/admin/products').catch(() => ({ products: [] })),
         apiFetch('/api/admin/tasks/analytics').catch(() => ({ analytics: null })),
-        fetchSupabaseMicrotasks().catch(() => []),
-        fetchSupabaseSubmissions().catch(() => []),
-        fetchSupabaseWithdrawals().catch(() => []),
-        apiFetch('/api/admin/disputes').catch(() => apiFetch('/api/admin/support-tickets')).catch(() => ({ disputes: [] })),
-        fetchSupabaseProfiles().catch(() => []),
-        fetchSupabaseTickets().catch(() => []),
+        fetchSupabaseMicrotasks().catch((err) => {
+          console.error('[Supabase Error] fetchSupabaseMicrotasks failed:', err);
+          return [];
+        }),
+        fetchSupabaseSubmissions().catch((err) => {
+          console.error('[Supabase Error] fetchSupabaseSubmissions failed:', err);
+          return [];
+        }),
+        fetchSupabaseWithdrawals().catch((err) => {
+          console.error('[Supabase Error] fetchSupabaseWithdrawals failed:', err);
+          return [];
+        }),
+        apiFetch('/api/admin/disputes')
+          .catch(() => apiFetch('/api/admin/support-tickets'))
+          .catch(() => ({ disputes: [] })),
+        fetchSupabaseProfiles().catch((err) => {
+          console.error('[Supabase Error] fetchSupabaseProfiles failed (check RLS):', err);
+          return [];
+        }),
+        fetchSupabaseTickets().catch((err) => {
+          console.error('[Supabase Error] fetchSupabaseTickets failed (check RLS):', err);
+          return [];
+        }),
       ]);
 
       if (tka?.analytics) {
@@ -344,8 +410,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
           const parsedReg = JSON.parse(rawReg);
           if (Array.isArray(parsedReg)) {
             for (const item of parsedReg) {
-              const u = item?.user;
-              if (u && !existingUserIds.has(u.id) && !existingUserEmails.has((u.email || '').toLowerCase())) {
+              const u = item?.user || item;
+              if (u && u.email && !existingUserIds.has(u.id) && !existingUserEmails.has((u.email || '').toLowerCase())) {
                 mergedUsers.unshift(u);
                 existingUserIds.add(u.id);
                 if (u.email) existingUserEmails.add(u.email.toLowerCase());
@@ -355,6 +421,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
         }
       } catch (e) {
         console.warn('localStorage registered users parse warning:', e);
+      }
+
+      // 3. Merge active current user if not in roster
+      try {
+        const rawCur = localStorage.getItem('nexvora_current_user');
+        if (rawCur) {
+          const curU = JSON.parse(rawCur);
+          if (curU && curU.id && curU.email && !existingUserIds.has(curU.id) && !existingUserEmails.has(curU.email.toLowerCase())) {
+            mergedUsers.unshift(curU);
+            existingUserIds.add(curU.id);
+            existingUserEmails.add(curU.email.toLowerCase());
+          }
+        }
+      } catch {}
+
+      // Asynchronously sync any new registered users to the backend Express database
+      if (mergedUsers.length > loadedUsers.length) {
+        apiFetch('/api/admin/users/sync', {
+          method: 'POST',
+          body: JSON.stringify({ users: mergedUsers }),
+        }).catch(() => {});
       }
 
       setUsersList(mergedUsers);
@@ -459,23 +546,52 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
             for (const lw of parsedLocalWds) {
               if (!existingWdIds.has(lw.id) && !existingWdIds.has(lw.withdrawalNumber)) {
                 mergedWithdrawals.unshift(lw);
-                existingWdIds.add(lw.id);
+                existingWdIds.add(lw.id || lw.withdrawalNumber);
               }
             }
           }
         }
       } catch {}
 
+      // Scan all localStorage keys starting with nexvora_withdrawals_
+      try {
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('nexvora_withdrawals_')) {
+            const rawW = localStorage.getItem(k);
+            if (rawW) {
+              const parsed = JSON.parse(rawW);
+              if (Array.isArray(parsed)) {
+                for (const w of parsed) {
+                  if (w && !existingWdIds.has(w.id) && !existingWdIds.has(w.withdrawalNumber)) {
+                    mergedWithdrawals.unshift(w);
+                    existingWdIds.add(w.id || w.withdrawalNumber);
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch {}
+
+      // Asynchronously sync any new withdrawals to backend Express database
+      if (mergedWithdrawals.length > loadedWithdrawals.length) {
+        apiFetch('/api/admin/withdrawals/sync', {
+          method: 'POST',
+          body: JSON.stringify({ withdrawals: mergedWithdrawals }),
+        }).catch(() => {});
+      }
+
       // Sort newest first
       mergedWithdrawals.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setWithdrawalsList(mergedWithdrawals);
 
-      setGateways(gw.gateways || []);
-      setLogs(lg.audit_logs || []);
-      setKycUsers(ky.verifications || []);
+      setGateways(gw?.gateways || []);
+      setLogs(lg?.audit_logs || []);
+      setKycUsers(ky?.verifications || []);
 
       // Merge backend submissions, Supabase submissions, and localStorage submissions
-      let mergedSubmissions = [...(ts.submissions || [])];
+      let mergedSubmissions = [...(ts?.submissions || [])];
       const existingSubIds = new Set(mergedSubmissions.map((s: any) => s.id));
 
       // 1. Merge Supabase submissions
@@ -519,13 +635,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
       setTaskSubmissions(mergedSubmissions);
       setGatewaySpecs(gws?.specifications || []);
 
-      const completedWds = mergedWithdrawals.filter((w: any) => w.status === 'Completed' || w.status === 'APPROVED' || w.status === 'PAID');
+      const completedWds = mergedWithdrawals.filter(
+        (w: any) => w.status === 'Completed' || w.status === 'APPROVED' || w.status === 'PAID'
+      );
       const pendingWds = mergedWithdrawals.filter(
-        (w: any) => w.status === 'Pending' || w.status === 'Under Review' || w.status === 'Processing' || w.status === 'PENDING'
+        (w: any) =>
+          w.status === 'Pending' ||
+          w.status === 'Under Review' ||
+          w.status === 'Processing' ||
+          w.status === 'PENDING'
       );
 
       setStats({
-        totalRegisteredUsers: loadedUsers.length,
+        totalRegisteredUsers: mergedUsers.length,
         totalDisbursedAmount: completedWds.reduce((acc: number, w: any) => acc + (w.netAmount || w.amount || 0), 0),
         pendingWithdrawalsAmount: pendingWds.reduce((acc: number, w: any) => acc + (w.amount || 0), 0),
         totalRealFeesEarned: completedWds.reduce((acc: number, w: any) => acc + (w.fee || 0), 0),
@@ -543,6 +665,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
   useEffect(() => {
     fetchAdminData();
     const handleSync = () => fetchAdminData();
+    window.addEventListener('users_updated', handleSync);
     window.addEventListener('tasks_updated', handleSync);
     window.addEventListener('submissions_updated', handleSync);
     window.addEventListener('tickets_updated', handleSync);
@@ -1301,10 +1424,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={fetchAdminData}
-            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs flex items-center gap-1.5"
+            onClick={async () => {
+              setActionFeedback('Refreshing database and synchronizing all tables...');
+              await fetchAdminData();
+              setTimeout(() => setActionFeedback(null), 3000);
+            }}
+            disabled={loading}
+            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs flex items-center gap-1.5 transition-all active:scale-95"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /> Refresh Database
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-purple-400' : ''}`} /> Refresh Database
           </button>
         </div>
       </div>
@@ -1338,19 +1466,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
         </button>
         <button
           onClick={() => setAdminTab('withdrawals')}
-          className={`px-3 py-2 rounded-xl font-medium transition-all ${
+          className={`px-3 py-2 rounded-xl font-medium transition-all flex items-center gap-1.5 ${
             adminTab === 'withdrawals' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
           }`}
         >
-          Withdrawals ({withdrawalsList.filter((w) => w.status === 'Pending' || w.status === 'Under Review').length})
+          <span>Withdrawals ({withdrawalsList.length})</span>
+          {withdrawalsList.filter((w) => w.status === 'Pending' || w.status === 'Under Review' || w.status === 'Processing').length > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold">
+              {withdrawalsList.filter((w) => w.status === 'Pending' || w.status === 'Under Review' || w.status === 'Processing').length}
+            </span>
+          )}
         </button>
         <button
           onClick={() => setAdminTab('task_reviews')}
-          className={`px-3 py-2 rounded-xl font-medium transition-all ${
+          className={`px-3 py-2 rounded-xl font-medium transition-all flex items-center gap-1.5 ${
             adminTab === 'task_reviews' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
           }`}
         >
-          Task Approvals ({taskSubmissions.filter((s) => s.status === 'pending_review').length})
+          <span>Task Approvals ({taskSubmissions.length})</span>
+          {taskSubmissions.filter((s) => s.status === 'pending_review').length > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-bold">
+              {taskSubmissions.filter((s) => s.status === 'pending_review').length}
+            </span>
+          )}
         </button>
         <button
           onClick={() => setAdminTab('support')}

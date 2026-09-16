@@ -24,6 +24,7 @@ import type { Task } from '../types';
 import { extractTaskTargetUrl, parseTaskSteps } from './TaskCard';
 import { useAuth } from '../context/AuthContext';
 import { getTaskCooldownStatus, type TaskCooldownStatus, markTaskAsCompleted } from '../lib/taskLockUtils';
+import { insertSupabaseSubmission } from '../lib/supabase';
 
 export interface TaskDetailModalProps {
   task: Task | null;
@@ -261,6 +262,40 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
           proofUrl,
         }),
       });
+
+      // Construct comprehensive submission object
+      const subRecord = {
+        id: res?.submission?.id || `sub_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        taskId: task.id,
+        taskTitle: task.title,
+        userId: user?.id || 'usr_anonymous',
+        userName: user?.fullName || user?.username || 'User',
+        userEmail: user?.email || '',
+        rewardAmount: task.rewardAmount,
+        rewardCoins: task.rewardCoins,
+        status: 'pending_review' as const,
+        textNotes: proofText,
+        screenshotUrl,
+        proofUrl,
+        submittedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      };
+
+      // Save to localStorage submissions cache
+      try {
+        const existingSubs = JSON.parse(localStorage.getItem('nexvora_custom_submissions') || '[]');
+        const updatedSubs = [subRecord, ...existingSubs.filter((s: any) => s.id !== subRecord.id)];
+        localStorage.setItem('nexvora_custom_submissions', JSON.stringify(updatedSubs));
+      } catch {}
+
+      // Insert into Supabase
+      try {
+        insertSupabaseSubmission(subRecord as any).catch(() => {});
+      } catch {}
+
+      // Dispatch event so Admin panel updates instantly
+      window.dispatchEvent(new Event('submissions_updated'));
+      window.dispatchEvent(new Event('storage'));
 
       // Persist 5-hour cooldown lock locally immediately to preserve accurate timer across page refreshes
       const completedAt = res?.completedAt || new Date().toISOString();

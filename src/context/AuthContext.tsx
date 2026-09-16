@@ -806,7 +806,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('points', '100');
     localStorage.setItem('user_points', '100');
 
-    // 4. Update React state
+    // 4. Asynchronously sync to backend Express database
+    try {
+      apiFetch('/api/admin/users/sync', {
+        method: 'POST',
+        body: JSON.stringify({
+          users: [
+            {
+              ...newUser,
+              points: 100,
+              balance: 0.1,
+            },
+          ],
+        }),
+      }).catch((err) => console.warn('[Backend users/sync notice]:', err));
+    } catch {}
+
+    // 5. Update React state
     setToken(generatedToken);
     setUser(newUser);
     setProfile(newProfile);
@@ -814,6 +830,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     window.dispatchEvent(new CustomEvent('balanceUpdated', { detail: { newBalance: 0.1, points: 100 } }));
     window.dispatchEvent(new CustomEvent('pointsUpdated', { detail: { points: 100 } }));
+    window.dispatchEvent(new Event('users_updated'));
+    window.dispatchEvent(new Event('storage'));
   };
 
   const logout = () => {

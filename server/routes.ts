@@ -4023,8 +4023,10 @@ apiRouter.get('/admin/users', ...adminOnly, (req: AuthRequest, res: Response): v
       email: u.email,
       fullName: u.fullName,
       username: u.username,
+      phone: u.phone || '',
       role: u.role,
       status: u.status,
+      referralCode: u.referralCode || 'NEXVORA',
       kycStatus: prof?.kycStatus || 'unsubmitted',
       availableBalance: wal?.availableBalance || 0,
       totalEarned: wal?.totalEarned || 0,
@@ -4033,6 +4035,100 @@ apiRouter.get('/admin/users', ...adminOnly, (req: AuthRequest, res: Response): v
   });
 
   res.json({ users: sanitized });
+});
+
+// Sync users between frontend / Supabase and backend database
+apiRouter.post(['/admin/users/sync', '/users/sync'], async (req: Request, res: Response): Promise<void> => {
+  try {
+    const rawUsers = Array.isArray(req.body?.users) ? req.body.users : [req.body];
+    const users = db.getTable('users');
+    const profiles = db.getTable('profiles');
+    const wallets = db.getTable('wallets');
+    let added = 0;
+
+    for (const u of rawUsers) {
+      if (!u || !u.email) continue;
+      const cleanEmail = String(u.email).toLowerCase();
+      const existing = users.find((x) => x.id === u.id || x.email.toLowerCase() === cleanEmail);
+      if (!existing) {
+        const newId = u.id || `usr_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+        const newUser = {
+          id: newId,
+          email: cleanEmail,
+          passwordHash: '***',
+          fullName: u.fullName || u.full_name || 'Member',
+          username: u.username || cleanEmail.split('@')[0],
+          phone: u.phone || '',
+          role: u.role || 'USER',
+          status: u.status || 'active',
+          referralCode: u.referralCode || u.referral_code || `${(u.username || 'USER').toUpperCase()}_REF`,
+          emailVerified: true,
+          createdAt: u.createdAt || u.created_at || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        users.push(newUser as any);
+
+        if (!profiles.some((p) => p.userId === newId)) {
+          profiles.push({
+            id: `prof_${newId}`,
+            userId: newId,
+            bio: '',
+            skills: [],
+            languages: ['English'],
+            country: 'Global',
+            kycStatus: 'unsubmitted',
+            updatedAt: new Date().toISOString(),
+          });
+        }
+
+        if (!wallets.some((w) => w.userId === newId)) {
+          wallets.push({
+            id: `wal_${newId}`,
+            userId: newId,
+            availableBalance: u.balance || 0.10,
+            pendingBalance: 0,
+            totalEarned: 0,
+            totalWithdrawn: 0,
+            currency: 'USD',
+            updatedAt: new Date().toISOString(),
+          });
+        }
+        added++;
+      }
+    }
+    if (added > 0) {
+      await db.persist();
+    }
+    res.json({ success: true, added, total: users.length });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Sync withdrawals between frontend / Supabase and backend database
+apiRouter.post(['/admin/withdrawals/sync', '/withdrawals/sync'], async (req: Request, res: Response): Promise<void> => {
+  try {
+    const rawWds = Array.isArray(req.body?.withdrawals) ? req.body.withdrawals : [req.body];
+    const withdrawals = db.getTable('withdrawals');
+    let added = 0;
+
+    for (const w of rawWds) {
+      if (!w || (!w.id && !w.withdrawalNumber)) continue;
+      const existing = withdrawals.find(
+        (x) => x.id === w.id || (w.withdrawalNumber && x.withdrawalNumber === w.withdrawalNumber)
+      );
+      if (!existing) {
+        withdrawals.unshift(w);
+        added++;
+      }
+    }
+    if (added > 0) {
+      await db.persist();
+    }
+    res.json({ success: true, added, total: withdrawals.length });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Update user role (SUPER ADMIN only)
@@ -4173,7 +4269,7 @@ apiRouter.put('/admin/verifications/:userId', authenticateToken, requireRole(['S
 });
 
 // Task submissions review (Approve -> Credits user wallet via Ledger)
-apiRouter.get('/admin/task-submissions', ...adminOnly, (req: AuthRequest, res: Response): void => {
+apiRouter.get(['/admin/task-submissions', '/admin/submissions'], ...adminOnly, (req: AuthRequest, res: Response): void => {
   const submissions = db.getTable('task_submissions');
   const tasks = db.getTable('tasks');
   const users = db.getTable('users');
@@ -4199,7 +4295,7 @@ apiRouter.get('/admin/task-submissions', ...adminOnly, (req: AuthRequest, res: R
   res.json({ submissions: enriched });
 });
 
-apiRouter.put('/admin/task-submissions/:id', authenticateToken, requireRole(['SUPER ADMIN', 'ADMIN', 'CONTENT ADMIN', 'MODERATOR']), async (req: AuthRequest, res: Response): Promise<void> => {
+apiRouter.put(['/admin/task-submissions/:id', '/admin/submissions/:id'], authenticateToken, requireRole(['SUPER ADMIN', 'ADMIN', 'CONTENT ADMIN', 'MODERATOR']), async (req: AuthRequest, res: Response): Promise<void> => {
   const submissionId = req.params.id;
   const { decision, rejectionReason } = req.body; // 'approved' or 'rejected'
 

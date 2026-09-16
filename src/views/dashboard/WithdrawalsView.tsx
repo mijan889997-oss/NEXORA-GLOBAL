@@ -446,10 +446,32 @@ export const WithdrawalsView: React.FC<WithdrawalsViewProps> = ({ navigate, onBa
         } catch {}
       }
 
+      // Also persist to global admin withdrawals cache for instant visibility
+      try {
+        const adminCacheKey = 'nexvora_admin_withdrawals_cache';
+        const existingCache = JSON.parse(localStorage.getItem(adminCacheKey) || '[]');
+        const mergedCache = [
+          finalRecord,
+          ...existingCache.filter(
+            (x: any) => x.id !== finalRecord.id && x.withdrawalNumber !== finalRecord.withdrawalNumber
+          ),
+        ];
+        localStorage.setItem(adminCacheKey, JSON.stringify(mergedCache));
+      } catch {}
+
+      // Asynchronously sync to backend Express database
+      try {
+        apiFetch('/api/admin/withdrawals/sync', {
+          method: 'POST',
+          body: JSON.stringify({ withdrawals: [finalRecord] }),
+        }).catch(() => {});
+      } catch {}
+
       // 7. Dispatch events for real-time balance propagation
       window.dispatchEvent(new CustomEvent('balanceUpdated', { detail: { newBalance: remainingBalance, points: remainingPoints } }));
       window.dispatchEvent(new CustomEvent('pointsUpdated', { detail: { newBalance: remainingBalance, points: remainingPoints } }));
       window.dispatchEvent(new Event('withdrawals_updated'));
+      window.dispatchEvent(new Event('storage'));
 
       // 8. Success feedback & field reset
       setWithdrawMsg({
