@@ -36,27 +36,27 @@ export const supabaseClient = supabase;
 export function mapRowToTask(row: any): Task {
   const instructions = Array.isArray(row.instructions)
     ? row.instructions
+    : typeof row.proof_instructions === 'string'
+    ? row.proof_instructions.split('\n').filter(Boolean)
     : typeof row.instructions === 'string'
     ? row.instructions.split('\n').filter(Boolean)
     : ['Complete task instructions and submit proof.'];
+
+  const rewardAmount =
+    typeof row.reward === 'number'
+      ? row.reward
+      : typeof row.reward_amount === 'number'
+      ? row.reward_amount
+      : typeof row.rewardAmount === 'number'
+      ? row.rewardAmount
+      : 0.025;
 
   const rewardCoins =
     typeof row.reward_coins === 'number'
       ? row.reward_coins
       : typeof row.rewardCoins === 'number'
       ? row.rewardCoins
-      : typeof row.reward_amount === 'number'
-      ? Math.round(row.reward_amount * 1000)
-      : typeof row.rewardAmount === 'number'
-      ? Math.round(row.rewardAmount * 1000)
-      : 25;
-
-  const rewardAmount =
-    typeof row.reward_amount === 'number'
-      ? row.reward_amount
-      : typeof row.rewardAmount === 'number'
-      ? row.rewardAmount
-      : Number((rewardCoins / 1000).toFixed(4));
+      : Math.round(rewardAmount * 1000);
 
   const isActive =
     row.is_active !== undefined
@@ -65,22 +65,26 @@ export function mapRowToTask(row: any): Task {
       ? row.status === 'active'
       : true;
 
+  const totalSlots = row.slots ?? row.total_slots ?? row.totalSlots ?? 100;
+  const completedSlots = row.completed_slots ?? 0;
+  const slotsRemaining = Math.max(0, totalSlots - completedSlots);
+
   return {
     id: String(row.id),
     title: row.title || 'Microtask',
     category: row.category || 'PTC (Website Visit)',
-    description: row.description || '',
+    description: row.proof_instructions || row.description || '',
     instructions,
     rewardAmount,
     rewardCoins,
     timerSeconds: row.timer_seconds ?? row.timerSeconds ?? 15,
     youtubeVideoId: row.youtube_video_id || row.youtubeVideoId || undefined,
-    targetUrl: row.target_url || row.targetUrl || undefined,
-    totalSlots: row.total_slots ?? row.totalSlots ?? 100,
-    slotsRemaining: row.slots_remaining ?? row.slotsRemaining ?? row.total_slots ?? 100,
+    targetUrl: row.link || row.target_url || row.targetUrl || undefined,
+    totalSlots,
+    slotsRemaining,
     timeLimitMinutes: row.time_limit_minutes ?? row.timeLimitMinutes ?? 30,
     verificationType: row.verification_type || row.verificationType || 'instant_timer',
-    proofRequirements: row.proof_requirements || row.proofRequirements || undefined,
+    proofRequirements: row.proof_instructions || row.proof_requirements || row.proofRequirements || undefined,
     status: isActive ? 'active' : 'inactive',
     createdById: row.created_by || row.createdById || 'admin',
     createdAt: row.created_at || row.createdAt || new Date().toISOString(),
@@ -89,53 +93,33 @@ export function mapRowToTask(row: any): Task {
 }
 
 /**
- * Normalizes frontend Task to Supabase database row format
+ * Normalizes frontend Task to Supabase database row format matching public.microtasks schema
  */
 export function mapTaskToRow(task: Partial<Task> & { title: string; category?: string }) {
-  const rewardAmount =
+  const reward =
     typeof task.rewardAmount === 'number'
       ? task.rewardAmount
       : typeof task.rewardCoins === 'number'
       ? Number((task.rewardCoins / 1000).toFixed(4))
       : 0.025;
 
-  const rewardCoins =
-    typeof task.rewardCoins === 'number'
-      ? task.rewardCoins
-      : Math.round(rewardAmount * 1000);
-
   const isActive = task.status !== 'inactive';
+  const proofInstructions =
+    task.proofRequirements ||
+    (Array.isArray(task.instructions) ? task.instructions.join('\n') : task.description) ||
+    'Complete requirements and submit proof.';
 
   return {
     id: task.id || `task_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     title: task.title,
     category: task.category || 'PTC (Website Visit)',
-    description: task.description || '',
-    instructions: task.instructions || ['Complete task requirements and submit proof of work.'],
-    proof_requirements: task.proofRequirements || null,
-    proofRequirements: task.proofRequirements || null,
-    reward_amount: rewardAmount,
-    rewardAmount: rewardAmount,
-    reward_coins: rewardCoins,
-    rewardCoins: rewardCoins,
-    timer_seconds: task.timerSeconds || 15,
-    timerSeconds: task.timerSeconds || 15,
-    youtube_video_id: task.youtubeVideoId || null,
-    youtubeVideoId: task.youtubeVideoId || null,
-    target_url: task.targetUrl || null,
-    targetUrl: task.targetUrl || null,
-    total_slots: task.totalSlots || 100,
-    totalSlots: task.totalSlots || 100,
-    slots_remaining: task.slotsRemaining ?? task.totalSlots ?? 100,
-    slotsRemaining: task.slotsRemaining ?? task.totalSlots ?? 100,
-    verification_type: task.verificationType || 'instant_timer',
-    verificationType: task.verificationType || 'instant_timer',
+    reward: Number(reward.toFixed(4)),
+    slots: task.totalSlots || 100,
+    completed_slots: task.totalSlots ? Math.max(0, (task.totalSlots || 100) - (task.slotsRemaining ?? task.totalSlots)) : 0,
+    link: task.targetUrl || (task.youtubeVideoId ? `https://www.youtube.com/watch?v=${task.youtubeVideoId}` : null),
+    proof_instructions: proofInstructions,
     is_active: isActive,
-    status: isActive ? 'active' : 'inactive',
-    created_by: task.createdById || 'admin',
-    createdById: task.createdById || 'admin',
     created_at: task.createdAt || new Date().toISOString(),
-    createdAt: task.createdAt || new Date().toISOString(),
   };
 }
 
@@ -143,24 +127,33 @@ export function mapTaskToRow(task: Partial<Task> & { title: string; category?: s
  * Normalizes Supabase database row to TaskSubmission interface
  */
 export function mapRowToSubmission(row: any): TaskSubmission {
-  const textNotes = row.text_notes || row.textNotes || row.proofData?.textNotes || row.proof_text || '';
-  const proofUrl = row.proof_url || row.proofUrl || row.proofData?.proofUrl || row.link || '';
-  const screenshotUrl = row.screenshot_url || row.screenshotUrl || row.proofData?.screenshotUrl || '';
+  const textNotes = row.proof_text || row.text_notes || row.textNotes || row.proofData?.textNotes || '';
+  const proofUrl = row.proof_image || row.proof_url || row.proofUrl || row.proofData?.proofUrl || '';
+  const screenshotUrl = row.proof_image || row.screenshot_url || row.screenshotUrl || row.proofData?.screenshotUrl || '';
   const transactionOrProfileId =
     row.transaction_or_profile_id ||
     row.transactionOrProfileId ||
     row.proofData?.transactionOrProfileId ||
-    row.profile_id ||
-    row.transaction_id ||
     '';
+
+  const rewardAmount = typeof row.reward === 'number' ? row.reward : row.reward_amount ?? row.rewardAmount ?? 0.5;
+  const rewardCoins = Math.round(rewardAmount * 1000);
+
+  const rawStatus = String(row.status || 'pending').toLowerCase();
+  let normalizedStatus: 'pending_review' | 'approved' | 'rejected' = 'pending_review';
+  if (rawStatus === 'approved') {
+    normalizedStatus = 'approved';
+  } else if (rawStatus === 'rejected') {
+    normalizedStatus = 'rejected';
+  }
 
   return {
     id: String(row.id),
     taskId: String(row.task_id || row.taskId || ''),
     taskTitle: row.task_title || row.taskTitle || 'Microtask Submission',
     taskCategory: row.task_category || row.taskCategory || 'Microtask',
-    rewardAmount: row.reward_amount ?? row.rewardAmount ?? 0.5,
-    rewardCoins: row.reward_coins ?? row.rewardCoins ?? 500,
+    rewardAmount,
+    rewardCoins,
     userId: String(row.user_id || row.userId || ''),
     userName: row.user_name || row.userName || row.user_email || 'Member',
     userEmail: row.user_email || row.userEmail || '',
@@ -174,62 +167,38 @@ export function mapRowToSubmission(row: any): TaskSubmission {
     proofUrl,
     screenshotUrl,
     transactionOrProfileId,
-    status: (row.status === 'approved' || row.status === 'rejected' ? row.status : 'pending_review') as any,
+    status: normalizedStatus,
     rejectionReason: row.rejection_reason || row.rejectionReason || undefined,
     reviewedBy: row.reviewed_by || row.reviewedBy || undefined,
     reviewedAt: row.reviewed_at || row.reviewedAt || undefined,
-    submittedAt: row.submitted_at || row.submittedAt || row.created_at || row.createdAt || new Date().toISOString(),
+    submittedAt: row.created_at || row.submitted_at || row.submittedAt || new Date().toISOString(),
     createdAt: row.created_at || row.createdAt || new Date().toISOString(),
   };
 }
 
 /**
- * Normalizes frontend TaskSubmission to Supabase row format
+ * Normalizes frontend TaskSubmission to Supabase row format matching public.task_submissions schema
  */
 export function mapSubmissionToRow(sub: Partial<TaskSubmission>) {
   const proofData = sub.proofData || {};
-  const textNotes = sub.textNotes || proofData.textNotes || '';
-  const proofUrl = sub.proofUrl || proofData.proofUrl || '';
-  const screenshotUrl = sub.screenshotUrl || proofData.screenshotUrl || '';
-  const transactionOrProfileId = sub.transactionOrProfileId || proofData.transactionOrProfileId || '';
+  const proofText = sub.textNotes || proofData.textNotes || '';
+  const proofImage = sub.screenshotUrl || proofData.screenshotUrl || sub.proofUrl || proofData.proofUrl || '';
+  const reward = sub.rewardAmount || (sub.rewardCoins ? sub.rewardCoins / 1000 : 0.05);
+
+  const rawStatus = String(sub.status || 'pending').toLowerCase();
+  const dbStatus = rawStatus === 'approved' ? 'approved' : rawStatus === 'rejected' ? 'rejected' : 'pending';
 
   return {
     id: sub.id || `sub_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     task_id: sub.taskId,
-    taskId: sub.taskId,
-    task_title: sub.taskTitle || 'Microtask',
-    taskTitle: sub.taskTitle || 'Microtask',
-    task_category: sub.taskCategory || 'Microtask',
-    taskCategory: sub.taskCategory || 'Microtask',
-    reward_amount: sub.rewardAmount || 0.5,
-    rewardAmount: sub.rewardAmount || 0.5,
-    reward_coins: sub.rewardCoins || 500,
-    rewardCoins: sub.rewardCoins || 500,
-    user_id: sub.userId,
-    userId: sub.userId,
+    user_id: sub.userId || 'guest',
     user_name: sub.userName || 'Member',
-    userName: sub.userName || 'Member',
-    user_email: sub.userEmail || '',
-    userEmail: sub.userEmail || '',
-    text_notes: textNotes,
-    textNotes: textNotes,
-    proof_url: proofUrl,
-    proofUrl: proofUrl,
-    screenshot_url: screenshotUrl,
-    screenshotUrl: screenshotUrl,
-    transaction_or_profile_id: transactionOrProfileId,
-    transactionOrProfileId: transactionOrProfileId,
-    proof_data: { textNotes, proofUrl, screenshotUrl, transactionOrProfileId },
-    proofData: { textNotes, proofUrl, screenshotUrl, transactionOrProfileId },
-    status: sub.status || 'pending_review',
+    proof_text: proofText,
+    proof_image: proofImage,
+    status: dbStatus,
     rejection_reason: sub.rejectionReason || null,
-    rejectionReason: sub.rejectionReason || null,
-    reviewed_by: sub.reviewedBy || null,
-    reviewedBy: sub.reviewedBy || null,
-    reviewed_at: sub.reviewedAt || null,
-    reviewedAt: sub.reviewedAt || null,
-    submitted_at: sub.submittedAt || sub.createdAt || new Date().toISOString(),
-    created_at: sub.createdAt || new Date().toISOString(),
+    reward: Number(reward.toFixed(4)),
+    created_at: sub.submittedAt || sub.createdAt || new Date().toISOString(),
   };
 }
 
@@ -847,6 +816,298 @@ export function subscribeToWithdrawals(onChange: (payload: any) => void) {
     };
   } catch (err) {
     console.warn('[Supabase] Realtime withdrawals subscription error:', err);
+    return () => {};
+  }
+}
+
+// ==============================================================================
+// USER PROFILES (public.profiles) CRUD & REALTIME
+// ==============================================================================
+
+export interface SupabaseProfile {
+  id: string;
+  email: string;
+  full_name: string;
+  username: string;
+  phone?: string | null;
+  role: string;
+  points: number;
+  balance: number;
+  status: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+/**
+ * Fetch all registered users from public.profiles for Admin Panel
+ */
+export async function fetchSupabaseProfiles(): Promise<SupabaseProfile[]> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!error && Array.isArray(data)) {
+      return data.map((r: any) => ({
+        id: String(r.id),
+        email: r.email || '',
+        full_name: r.full_name || r.fullName || r.email || 'Member',
+        username: r.username || (r.email ? r.email.split('@')[0] : 'user'),
+        phone: r.phone || r.phoneNumber || null,
+        role: String(r.role || 'USER').toUpperCase(),
+        points: Number(r.points || 0),
+        balance: Number(r.balance || 0),
+        status: String(r.status || 'ACTIVE').toUpperCase(),
+        created_at: r.created_at || new Date().toISOString(),
+        updated_at: r.updated_at || undefined,
+      }));
+    }
+  } catch (err) {
+    console.warn('[Supabase] fetchSupabaseProfiles notice:', err);
+  }
+  return [];
+}
+
+/**
+ * Insert or update a user profile into public.profiles
+ */
+export async function upsertSupabaseProfile(profile: {
+  id: string;
+  email: string;
+  full_name?: string;
+  username?: string;
+  phone?: string | null;
+  role?: string;
+  points?: number;
+  balance?: number;
+  status?: string;
+  created_at?: string;
+}): Promise<{ success: boolean; error?: any }> {
+  const row = {
+    id: profile.id,
+    email: profile.email.toLowerCase().trim(),
+    full_name: profile.full_name || profile.username || 'Member',
+    username: (profile.username || profile.email.split('@')[0]).toLowerCase().trim(),
+    phone: profile.phone || null,
+    role: (profile.role || 'USER').toUpperCase(),
+    points: typeof profile.points === 'number' ? profile.points : 100,
+    balance: typeof profile.balance === 'number' ? Number(profile.balance.toFixed(4)) : 0.10,
+    status: (profile.status || 'ACTIVE').toUpperCase(),
+    created_at: profile.created_at || new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .upsert([row], { onConflict: 'id' });
+
+    if (error) {
+      console.warn('[Supabase] upsertSupabaseProfile notice:', error.message);
+      return { success: false, error };
+    }
+    return { success: true };
+  } catch (err: any) {
+    console.warn('[Supabase] upsertSupabaseProfile exception:', err);
+    return { success: false, error: err };
+  }
+}
+
+/**
+ * Update points and balance for a user profile in Supabase
+ */
+export async function updateSupabaseProfileBalance(
+  userId: string,
+  pointsDelta: number,
+  balanceDelta: number
+): Promise<{ success: boolean; newPoints?: number; newBalance?: number; error?: any }> {
+  try {
+    const { data: current, error: fetchErr } = await supabase
+      .from('profiles')
+      .select('points, balance')
+      .eq('id', userId)
+      .single();
+
+    if (fetchErr || !current) {
+      return { success: false, error: fetchErr };
+    }
+
+    const newPoints = Math.max(0, Math.round(Number(current.points || 0) + pointsDelta));
+    const newBalance = Math.max(0, Number((Number(current.balance || 0) + balanceDelta).toFixed(4)));
+
+    const { error: updateErr } = await supabase
+      .from('profiles')
+      .update({
+        points: newPoints,
+        balance: newBalance,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', userId);
+
+    if (updateErr) {
+      return { success: false, error: updateErr };
+    }
+
+    return { success: true, newPoints, newBalance };
+  } catch (err: any) {
+    return { success: false, error: err };
+  }
+}
+
+/**
+ * Subscribe to realtime changes on 'profiles' table
+ */
+export function subscribeToProfiles(onChange: (payload: any) => void) {
+  try {
+    const channel = supabase
+      .channel('public:profiles')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, (payload) => {
+        onChange(payload);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  } catch (err) {
+    console.warn('[Supabase] Realtime profiles subscription error:', err);
+    return () => {};
+  }
+}
+
+// ==============================================================================
+// SUPPORT TICKETS (public.support_tickets) CRUD & REALTIME
+// ==============================================================================
+
+export interface SupabaseTicket {
+  id: string;
+  ticket_number: string;
+  user_id?: string;
+  user_name?: string;
+  user_email?: string;
+  category?: string;
+  subject: string;
+  description: string;
+  status: string;
+  admin_reply?: string;
+  resolution_notes?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+/**
+ * Fetch all support tickets from public.support_tickets
+ */
+export async function fetchSupabaseTickets(): Promise<SupabaseTicket[]> {
+  try {
+    const { data, error } = await supabase
+      .from('support_tickets')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (!error && Array.isArray(data)) {
+      return data;
+    }
+  } catch (err) {
+    console.warn('[Supabase] fetchSupabaseTickets notice:', err);
+  }
+  return [];
+}
+
+/**
+ * Insert a support ticket into public.support_tickets
+ */
+export async function insertSupabaseTicket(ticket: {
+  id?: string;
+  ticket_number?: string;
+  user_id?: string;
+  user_name?: string;
+  user_email?: string;
+  category?: string;
+  subject: string;
+  description: string;
+  status?: string;
+}): Promise<{ success: boolean; ticket?: SupabaseTicket; error?: any }> {
+  const rowId = ticket.id || `tkt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const tktNumber = ticket.ticket_number || `TKT-${Math.floor(100000 + Math.random() * 900000)}`;
+  const now = new Date().toISOString();
+
+  const row = {
+    id: rowId,
+    ticket_number: tktNumber,
+    user_id: ticket.user_id || 'guest',
+    user_name: ticket.user_name || 'Member',
+    user_email: ticket.user_email || '',
+    category: ticket.category || 'General Inquiry',
+    subject: ticket.subject,
+    description: ticket.description,
+    status: ticket.status || 'open',
+    created_at: now,
+    updated_at: now,
+  };
+
+  try {
+    const { data, error } = await supabase
+      .from('support_tickets')
+      .insert([row])
+      .select()
+      .single();
+
+    if (!error && data) {
+      return { success: true, ticket: data };
+    }
+    return { success: !error, ticket: row, error };
+  } catch (err: any) {
+    console.warn('[Supabase] insertSupabaseTicket notice:', err);
+    return { success: false, ticket: row, error: err };
+  }
+}
+
+/**
+ * Update support ticket status / reply in public.support_tickets
+ */
+export async function updateSupabaseTicketStatus(
+  id: string,
+  status: string,
+  options?: { adminReply?: string; resolutionNotes?: string }
+): Promise<{ success: boolean; error?: any }> {
+  const updates: Record<string, any> = {
+    status,
+    updated_at: new Date().toISOString(),
+  };
+  if (options?.adminReply) updates.admin_reply = options.adminReply;
+  if (options?.resolutionNotes) updates.resolution_notes = options.resolutionNotes;
+
+  try {
+    const { error } = await supabase
+      .from('support_tickets')
+      .update(updates)
+      .eq('id', id);
+
+    return { success: !error, error };
+  } catch (err: any) {
+    return { success: false, error: err };
+  }
+}
+
+/**
+ * Subscribe to realtime changes on 'support_tickets' table
+ */
+export function subscribeToTickets(onChange: (payload: any) => void) {
+  try {
+    const channel = supabase
+      .channel('public:support_tickets')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, (payload) => {
+        onChange(payload);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  } catch (err) {
+    console.warn('[Supabase] Realtime tickets subscription error:', err);
     return () => {};
   }
 }

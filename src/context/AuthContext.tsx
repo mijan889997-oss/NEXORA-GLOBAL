@@ -728,6 +728,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const userRefCode = `${cleanUsername.toUpperCase()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
     const generatedToken = supaToken || `token_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
+    // Strictly insert into public.profiles table in Supabase
+    try {
+      await supabase
+        .from('profiles')
+        .upsert([
+          {
+            id: userId,
+            email: cleanEmail,
+            full_name: payload.fullName,
+            username: cleanUsername,
+            phone: payload.phone || null,
+            role: 'USER',
+            points: 100,
+            balance: 0.10,
+            status: 'ACTIVE',
+            created_at: new Date().toISOString(),
+          },
+        ], { onConflict: 'id' });
+    } catch (profErr) {
+      console.warn('[Supabase] public.profiles upsert error:', profErr);
+    }
+
     const newUser: User = {
       id: userId,
       email: cleanEmail,

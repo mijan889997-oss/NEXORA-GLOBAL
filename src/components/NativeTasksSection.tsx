@@ -32,6 +32,11 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import type { Task, DailyStreakStatus, TaskCompletionRecord, TaskSubmission } from '../types';
+import {
+  fetchSupabaseMicrotasks,
+  insertSupabaseSubmission,
+  subscribeToMicrotasks,
+} from '../lib/supabase';
 
 interface NativeTasksSectionProps {
   onRewardClaimed?: () => void;
@@ -276,16 +281,29 @@ export const NativeTasksSection: React.FC<NativeTasksSectionProps> = ({ onReward
   const loadTasksData = async () => {
     try {
       setLoading(true);
-      const [tasksRes, dailyRes, historyRes] = await Promise.all([
-        apiFetch('/api/tasks'),
-        apiFetch('/api/tasks/daily-status'),
-        apiFetch('/api/tasks/my-history'),
+      const [tasksRes, dailyRes, historyRes, , sbTasks] = await Promise.all([
+        apiFetch('/api/tasks').catch(() => ({ tasks: [] })),
+        apiFetch('/api/tasks/daily-status').catch(() => null),
+        apiFetch('/api/tasks/my-history').catch(() => null),
         loadVideoSettings(),
+        fetchSupabaseMicrotasks().catch(() => []),
       ]);
 
-      if (tasksRes?.tasks) {
-        setTasks(tasksRes.tasks);
+      const loadedTasks: Task[] = tasksRes?.tasks || [];
+      const existingIds = new Set(loadedTasks.map((t) => t.id));
+      let mergedTasks = [...loadedTasks];
+
+      if (Array.isArray(sbTasks) && sbTasks.length > 0) {
+        for (const sbt of sbTasks) {
+          if (!existingIds.has(sbt.id)) {
+            mergedTasks.unshift(sbt);
+            existingIds.add(sbt.id);
+          }
+        }
       }
+
+      setTasks(mergedTasks);
+
       if (dailyRes) {
         setDailyStatus(dailyRes);
       }
@@ -302,6 +320,12 @@ export const NativeTasksSection: React.FC<NativeTasksSectionProps> = ({ onReward
 
   useEffect(() => {
     loadTasksData();
+    const unsub = subscribeToMicrotasks(() => {
+      loadTasksData();
+    });
+    return () => {
+      if (typeof unsub === 'function') unsub();
+    };
   }, []);
 
   // Filter Tasks by Category
@@ -529,6 +553,28 @@ export const NativeTasksSection: React.FC<NativeTasksSectionProps> = ({ onReward
     setSocialSubmitMsg(null);
 
     try {
+      // 1. Insert proof into Supabase task_submissions
+      insertSupabaseSubmission({
+        taskId: selectedSocialTask.id,
+        taskTitle: selectedSocialTask.title,
+        taskCategory: selectedSocialTask.category,
+        rewardAmount: selectedSocialTask.rewardAmount,
+        rewardCoins: selectedSocialTask.rewardCoins,
+        userId: user?.id || 'guest',
+        userName: (user as any)?.name || user?.fullName || 'Member',
+        userEmail: user?.email || '',
+        textNotes: socialProofNotes,
+        screenshotUrl: socialScreenshotUrl,
+        proofUrl: socialProofUrl,
+        proofData: {
+          textNotes: socialProofNotes,
+          proofUrl: socialProofUrl,
+          screenshotUrl: socialScreenshotUrl,
+        },
+        status: 'pending_review',
+        submittedAt: new Date().toISOString(),
+      }).catch((err) => console.warn('[Supabase] Social submission insert notice:', err));
+
       const res = await apiFetch(`/api/tasks/${selectedSocialTask.id}/submit`, {
         method: 'POST',
         body: JSON.stringify({

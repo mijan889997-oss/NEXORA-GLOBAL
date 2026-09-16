@@ -21,6 +21,7 @@ import {
   Filter,
 } from 'lucide-react';
 import type { Dispute, TicketReply } from '../types';
+import { updateSupabaseTicketStatus } from '../lib/supabase';
 
 interface AdminSupportTicketsProps {
   tickets: Dispute[];
@@ -141,6 +142,12 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({
         });
       });
 
+      // Update in Supabase public.support_tickets table
+      updateSupabaseTicketStatus(activeTicket.id, newStatus, {
+        adminReply: replyMessage.trim() || undefined,
+        resolutionNotes: resolutionNotes.trim() || undefined,
+      }).catch((err) => console.warn('[Supabase] Support ticket status update notice:', err));
+
       // Update in localStorage to guarantee instant cross-tab syncing
       try {
         const rawLocal = localStorage.getItem('nexvora_support_tickets');
@@ -193,6 +200,10 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({
   // Quick mark as Resolved
   const handleQuickResolve = async (ticket: Dispute) => {
     try {
+      updateSupabaseTicketStatus(ticket.id, 'resolved', {
+        resolutionNotes: 'Marked resolved via Admin Quick Action.',
+      }).catch((err) => console.warn('[Supabase] Support ticket quick resolve notice:', err));
+
       await apiFetch(`/api/admin/disputes/${ticket.id}/status`, {
         method: 'PUT',
         body: JSON.stringify({
@@ -222,6 +233,10 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({
   // Quick status change dropdown
   const handleQuickStatusChange = async (ticket: Dispute, targetStatus: Dispute['status']) => {
     try {
+      updateSupabaseTicketStatus(ticket.id, targetStatus).catch((err) =>
+        console.warn('[Supabase] Support ticket quick status notice:', err)
+      );
+
       await apiFetch(`/api/admin/disputes/${ticket.id}/status`, {
         method: 'PUT',
         body: JSON.stringify({

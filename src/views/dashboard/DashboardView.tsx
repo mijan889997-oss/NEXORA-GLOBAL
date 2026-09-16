@@ -57,6 +57,7 @@ import {
   insertSupabaseSubmission,
   subscribeToMicrotasks,
   subscribeToSubmissions,
+  insertSupabaseTicket,
 } from '../../lib/supabase';
 import type {
   Transaction,
@@ -712,13 +713,28 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ currentSubpath = '
         body: JSON.stringify(payload),
       }).catch(() => null);
 
+      // Save to Supabase public.support_tickets table
+      const ticketNum = res?.ticket?.ticketNumber || `TKT-${Math.floor(100000 + Math.random() * 900000)}`;
+      const rowId = res?.ticket?.id || `tkt_${Date.now()}`;
+
+      insertSupabaseTicket({
+        id: rowId,
+        ticket_number: ticketNum,
+        user_id: user?.id || 'guest',
+        user_name: user?.fullName || (user as any)?.name || 'Member',
+        user_email: user?.email || '',
+        category: ticketCategory,
+        subject: ticketSubject,
+        description: ticketDesc,
+        status: 'open',
+      }).catch((err) => console.warn('[Supabase] Support ticket insert notice:', err));
+
       // Save to localStorage for instant synchronization across tabs
       try {
         const rawLocal = localStorage.getItem('nexvora_support_tickets');
         let localTickets: any[] = rawLocal ? JSON.parse(rawLocal) : [];
-        const ticketNum = res?.ticket?.ticketNumber || `TKT-${Math.floor(100000 + Math.random() * 900000)}`;
         const localObj = {
-          id: res?.ticket?.id || `tkt_${Date.now()}`,
+          id: rowId,
           ticketNumber: ticketNum,
           raisedById: user?.id || 'guest',
           userName: user?.fullName || (user as any)?.name || 'Member',

@@ -15,11 +15,10 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabase';
-import { AdminTaskItem, DEFAULT_ADMIN_TASKS, DEFAULT_ADMIN_CONFIG } from './AdminTasksManager';
+import { supabase, fetchSupabaseMicrotasks, subscribeToMicrotasks } from '../lib/supabase';
+import { AdminTaskItem, DEFAULT_ADMIN_CONFIG } from './AdminTasksManager';
 
 export type EarnTask = AdminTaskItem;
-export const SPONSOR_TASKS = DEFAULT_ADMIN_TASKS;
 
 export interface EarnSectionProps {
   onAddPoints?: (points: number) => void;
@@ -41,20 +40,8 @@ export const EarnSection: React.FC<EarnSectionProps> = ({
   const { user: authUser, wallet, updateWallet, refreshMe } = useAuth();
   const effectiveUser = propUser || currentUser || authUser;
 
-  const [tasksList, setTasksList] = useState<AdminTaskItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('nexvora_admin_tasks_config');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed.tasks) && parsed.tasks.length > 0) {
-          return parsed.tasks;
-        }
-      }
-    } catch {
-      // fallback
-    }
-    return DEFAULT_ADMIN_TASKS;
-  });
+  const [tasksList, setTasksList] = useState<AdminTaskItem[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState<boolean>(true);
 
   const [freecashUrl, setFreecashUrl] = useState<string>(() => {
     try {
@@ -78,6 +65,47 @@ export const EarnSection: React.FC<EarnSectionProps> = ({
   const [timer, setTimer] = useState<number>(0);
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
+
+  // Load microtasks directly from Supabase public.microtasks
+  const loadTasksFromSupabase = useCallback(async () => {
+    try {
+      setLoadingTasks(true);
+      const dbTasks = await fetchSupabaseMicrotasks();
+      if (Array.isArray(dbTasks) && dbTasks.length > 0) {
+        const mapped: AdminTaskItem[] = dbTasks
+          .filter((t) => t.status === 'active')
+          .map((t) => ({
+            id: t.id,
+            title: t.title,
+            desc: t.description || t.proofRequirements || 'Browse site and claim instant reward.',
+            url: t.targetUrl || 'https://google.com',
+            points: t.rewardCoins || Math.round((t.rewardAmount || 0.025) * 1000),
+            timer: t.timerSeconds || 15,
+            network: (t.category?.toLowerCase().includes('adsterra')
+              ? 'Adsterra'
+              : t.category?.toLowerCase().includes('monetag')
+              ? 'Monetag'
+              : 'Custom') as any,
+            active: t.status === 'active',
+            badgeBg: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+          }));
+        setTasksList(mapped);
+      } else {
+        // Check if admin config has saved tasks
+        const saved = localStorage.getItem('nexvora_admin_tasks_config');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed.tasks) && parsed.tasks.length > 0) {
+            setTasksList(parsed.tasks);
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[EarnSection] Error fetching microtasks from Supabase:', err);
+    } finally {
+      setLoadingTasks(false);
+    }
+  }, []);
 
   // সব স্টোরেজ থেকে বর্তমান পয়েন্ট খুঁজে বের করা
   const getStoredPoints = useCallback(() => {
@@ -142,30 +170,20 @@ export const EarnSection: React.FC<EarnSectionProps> = ({
       }
     }
 
+    // Initial load from Supabase
+    loadTasksFromSupabase();
+
+    // Subscribe to realtime microtasks updates from Supabase
+    const unsubscribeMicrotasks = subscribeToMicrotasks(() => {
+      loadTasksFromSupabase();
+    });
+
     // Dynamic Admin Tasks Configuration Listener
     const reloadAdminConfig = (e?: any) => {
-      try {
-        const detail = e?.detail;
-        if (detail && Array.isArray(detail.tasks)) {
-          setTasksList(detail.tasks);
-          if (detail.freecashBannerUrl) setFreecashUrl(detail.freecashBannerUrl);
-          return;
-        }
-        const saved = localStorage.getItem('nexvora_admin_tasks_config');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed.tasks) && parsed.tasks.length > 0) {
-            setTasksList(parsed.tasks);
-          }
-          if (parsed.freecashBannerUrl) {
-            setFreecashUrl(parsed.freecashBannerUrl);
-          }
-        }
-      } catch (err) {
-        console.warn('Error reading admin tasks config in EarnSection:', err);
-      }
+      loadTasksFromSupabase();
     };
 
+    window.addEventListener('tasks_updated', reloadAdminConfig);
     window.addEventListener('tasksConfigUpdated', reloadAdminConfig);
     window.addEventListener('storage', reloadAdminConfig);
     window.addEventListener('storage', syncLocalPoints);
@@ -173,13 +191,15 @@ export const EarnSection: React.FC<EarnSectionProps> = ({
     window.addEventListener('pointsUpdated', syncLocalPoints);
 
     return () => {
+      unsubscribeMicrotasks();
+      window.removeEventListener('tasks_updated', reloadAdminConfig);
       window.removeEventListener('tasksConfigUpdated', reloadAdminConfig);
       window.removeEventListener('storage', reloadAdminConfig);
       window.removeEventListener('storage', syncLocalPoints);
       window.removeEventListener('balanceUpdated', syncLocalPoints);
       window.removeEventListener('pointsUpdated', syncLocalPoints);
     };
-  }, [syncLocalPoints]);
+  }, [syncLocalPoints, loadTasksFromSupabase]);
 
   // কাউন্টডাউন টাইমার
   useEffect(() => {

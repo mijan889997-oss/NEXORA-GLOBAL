@@ -59,6 +59,10 @@ import {
   subscribeToMicrotasks,
   subscribeToSubmissions,
   subscribeToWithdrawals,
+  fetchSupabaseProfiles,
+  subscribeToProfiles,
+  fetchSupabaseTickets,
+  subscribeToTickets,
 } from '../../lib/supabase';
 import type {
   User as UserType,
@@ -204,7 +208,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
     if (!isAuthorized) return;
     setLoading(true);
     try {
-      const [ov, us, tk, wd, gw, lg, ky, ts, gws, srv, jb, prd, tka, sbTasks, sbSubs, sbWds, dspRes] = await Promise.all([
+      const [ov, us, tk, wd, gw, lg, ky, ts, gws, srv, jb, prd, tka, sbTasks, sbSubs, sbWds, dspRes, sbProfiles, sbTickets] = await Promise.all([
         apiFetch('/api/admin/overview'),
         apiFetch('/api/admin/users'),
         apiFetch('/api/admin/tasks'),
@@ -222,6 +226,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
         fetchSupabaseSubmissions().catch(() => []),
         fetchSupabaseWithdrawals().catch(() => []),
         apiFetch('/api/admin/disputes').catch(() => apiFetch('/api/admin/support-tickets')).catch(() => ({ disputes: [] })),
+        fetchSupabaseProfiles().catch(() => []),
+        fetchSupabaseTickets().catch(() => []),
       ]);
 
       if (tka?.analytics) {
@@ -236,9 +242,41 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
       const loadedProducts = prd?.products || [];
       const loadedDisputes: Dispute[] = dspRes?.disputes || dspRes?.tickets || [];
 
-      // Merge backend tickets and localStorage tickets
+      // Merge backend tickets, Supabase tickets, and localStorage tickets
       let mergedTickets = [...loadedDisputes];
       const existingTicketIds = new Set(mergedTickets.map((t) => t.id || t.ticketNumber));
+
+      // 1. Merge Supabase public.support_tickets
+      if (Array.isArray(sbTickets) && sbTickets.length > 0) {
+        for (const sbt of sbTickets) {
+          if (!existingTicketIds.has(sbt.id) && !existingTicketIds.has(sbt.ticket_number)) {
+            const mappedTkt: Dispute = {
+              id: sbt.id,
+              ticketNumber: sbt.ticket_number,
+              raisedById: sbt.user_id || 'guest',
+              userName: sbt.user_name || 'Member',
+              userEmail: sbt.user_email || '',
+              category: sbt.category || 'General',
+              subject: sbt.subject,
+              description: sbt.description,
+              status: (sbt.status || 'open') as any,
+              adminReply: sbt.admin_reply,
+              resolutionNotes: sbt.resolution_notes,
+              createdAt: sbt.created_at,
+              updatedAt: sbt.updated_at || sbt.created_at,
+              replies: sbt.admin_reply ? [{
+                id: `rep_${sbt.id}`,
+                senderName: 'Support Staff',
+                senderRole: 'admin',
+                message: sbt.admin_reply,
+                createdAt: sbt.updated_at || sbt.created_at,
+              }] : [],
+            };
+            mergedTickets.unshift(mappedTkt);
+            existingTicketIds.add(sbt.id);
+          }
+        }
+      }
 
       try {
         const rawTickets = localStorage.getItem('nexvora_support_tickets');
@@ -268,7 +306,58 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
       setServicesList(loadedServices);
       setJobsList(loadedJobs);
       setProductsList(loadedProducts);
-      setUsersList(loadedUsers);
+
+      // Merge backend users, Supabase profiles, and locally registered users
+      let mergedUsers: UserType[] = [...loadedUsers];
+      const existingUserIds = new Set(mergedUsers.map((u) => u.id));
+      const existingUserEmails = new Set(mergedUsers.map((u) => u.email.toLowerCase()));
+
+      // 1. Merge Supabase public.profiles
+      if (Array.isArray(sbProfiles) && sbProfiles.length > 0) {
+        for (const sbp of sbProfiles) {
+          if (!existingUserIds.has(sbp.id) && !existingUserEmails.has(sbp.email.toLowerCase())) {
+            const mappedUser: UserType = {
+              id: sbp.id,
+              email: sbp.email,
+              fullName: sbp.full_name || 'Member',
+              username: sbp.username || sbp.email.split('@')[0],
+              phone: sbp.phone || undefined,
+              role: (sbp.role || 'USER') as any,
+              status: (sbp.status?.toLowerCase() === 'banned' ? 'banned' : 'active') as any,
+              referralCode: (sbp as any).referral_code || `${(sbp.username || 'USER').toUpperCase()}_REF`,
+              emailVerified: true,
+              passwordHash: '***',
+              createdAt: sbp.created_at || new Date().toISOString(),
+              updatedAt: sbp.updated_at || sbp.created_at || new Date().toISOString(),
+            };
+            mergedUsers.unshift(mappedUser);
+            existingUserIds.add(sbp.id);
+            existingUserEmails.add(sbp.email.toLowerCase());
+          }
+        }
+      }
+
+      // 2. Merge locally registered users from localStorage
+      try {
+        const rawReg = localStorage.getItem('nexvora_registered_users');
+        if (rawReg) {
+          const parsedReg = JSON.parse(rawReg);
+          if (Array.isArray(parsedReg)) {
+            for (const item of parsedReg) {
+              const u = item?.user;
+              if (u && !existingUserIds.has(u.id) && !existingUserEmails.has((u.email || '').toLowerCase())) {
+                mergedUsers.unshift(u);
+                existingUserIds.add(u.id);
+                if (u.email) existingUserEmails.add(u.email.toLowerCase());
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('localStorage registered users parse warning:', e);
+      }
+
+      setUsersList(mergedUsers);
 
       // Read deleted task IDs and status overrides for persistent consistency
       let deletedIds: string[] = [];
@@ -473,6 +562,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
       console.log('[Supabase Realtime] Withdrawals table changed. Syncing UI...');
       fetchAdminData();
     });
+    const unsubProfiles = subscribeToProfiles(() => {
+      console.log('[Supabase Realtime] Profiles table changed. Syncing UI...');
+      fetchAdminData();
+    });
+    const unsubTickets = subscribeToTickets(() => {
+      console.log('[Supabase Realtime] Support tickets table changed. Syncing UI...');
+      fetchAdminData();
+    });
 
     return () => {
       window.removeEventListener('tasks_updated', handleSync);
@@ -483,6 +580,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
       if (typeof unsubMicro === 'function') unsubMicro();
       if (typeof unsubSubs === 'function') unsubSubs();
       if (typeof unsubWds === 'function') unsubWds();
+      if (typeof unsubProfiles === 'function') unsubProfiles();
+      if (typeof unsubTickets === 'function') unsubTickets();
     };
   }, [user]);
 
