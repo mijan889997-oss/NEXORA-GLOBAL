@@ -81,7 +81,7 @@ export const AuthPages: React.FC<AuthPagesProps> = ({ mode, navigate }) => {
 
   const handleAdminPrefill = () => {
     setEmail('admin@nexvora.global');
-    setPassword('AdminNexvora2026!');
+    setPassword('admin123');
   };
 
   return (
@@ -313,7 +313,7 @@ export const AuthPages: React.FC<AuthPagesProps> = ({ mode, navigate }) => {
               </button>
             </div>
             <p className="text-[11px] leading-relaxed">
-              Login as <code className="text-cyan-300">admin@nexvora.global</code> to access the Super Admin Panel, configure payment gateways, and review task submissions.
+              Login as <code className="text-cyan-300">admin@nexvora.global</code> (Password: <code className="text-cyan-300">admin123</code>) to access the Super Admin Panel, configure payment gateways, and review task submissions.
             </p>
           </div>
         )}

@@ -12,7 +12,7 @@ import { PublicMarketplace } from './views/PublicMarketplace';
 import { DashboardView } from './views/dashboard/DashboardView';
 import { AdminPanel } from './views/admin/AdminPanel';
 import { LegalPages } from './views/LegalPages';
-import { RefreshCw, AlertTriangle } from 'lucide-react';
+import { RefreshCw, AlertTriangle, Lock, ShieldAlert } from 'lucide-react';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -22,6 +22,41 @@ interface ErrorBoundaryState {
   hasError: boolean;
   error?: Error;
 }
+
+const AdminRouteGuard: React.FC<{
+  navigate: (path: string) => void;
+  isAuthenticated: boolean;
+}> = ({ navigate, isAuthenticated }) => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      navigate(isAuthenticated ? '/dashboard/earn' : '/login');
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [navigate, isAuthenticated]);
+
+  return (
+    <div className="min-h-[70vh] flex flex-col items-center justify-center px-4 py-16 text-center">
+      <div className="w-16 h-16 rounded-2xl bg-rose-950/80 border border-rose-800 text-rose-400 flex items-center justify-center mb-4 shadow-xl shadow-rose-950/40">
+        <Lock className="w-8 h-8" />
+      </div>
+      <h2 className="text-xl font-bold text-white mb-2 font-['Space_Grotesk']">
+        Administrative Access Restricted
+      </h2>
+      <p className="text-xs text-slate-400 max-w-md mb-6 leading-relaxed">
+        The route <code className="text-rose-400 bg-rose-950/60 px-2 py-0.5 rounded border border-rose-800 font-mono">/admin</code> is strictly reserved for authorized platform administrators and <code className="text-cyan-300">admin@nexvora.global</code>.
+      </p>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => navigate(isAuthenticated ? '/dashboard/earn' : '/login')}
+          className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold text-xs shadow-lg hover:brightness-110 transition-all"
+        >
+          {isAuthenticated ? 'Return to Earn Dashboard' : 'Sign in as Administrator'}
+        </button>
+      </div>
+      <p className="text-[11px] text-slate-500 mt-4">Redirecting automatically...</p>
+    </div>
+  );
+};
 
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = {
@@ -66,6 +101,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 }
 
 function AppContent() {
+  const { user, isAdmin, isLoading } = useAuth();
   const [currentPath, setCurrentPath] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       const pathname = window.location.pathname;
@@ -187,8 +223,25 @@ function AppContent() {
       return <DashboardView currentSubpath={subpath} navigate={navigate} />;
     }
 
-    // Admin panel
+    // Admin panel with strict route protection
     if (cleanPath.startsWith('/admin')) {
+      if (isLoading) {
+        return (
+          <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
+            <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-xs text-slate-400">Verifying administrative credentials...</p>
+          </div>
+        );
+      }
+
+      const isAuthorized = Boolean(
+        user && (user.email === 'admin@nexvora.global' || isAdmin || user.role === 'SUPER ADMIN')
+      );
+
+      if (!isAuthorized) {
+        return <AdminRouteGuard navigate={navigate} isAuthenticated={Boolean(user)} />;
+      }
+
       return <AdminPanel navigate={navigate} />;
     }
 

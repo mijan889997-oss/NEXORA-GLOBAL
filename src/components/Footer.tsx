@@ -1,12 +1,15 @@
 import React from 'react';
 import { Globe, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { openUdemyAffiliate } from '../config/affiliateLinks';
+import { useAuth } from '../context/AuthContext';
 
 interface FooterProps {
   navigate: (path: string) => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({ navigate }) => {
+  const { user, isAdmin } = useAuth();
+  const isAuthorizedAdmin = Boolean(user && (isAdmin || user.email === 'admin@nexvora.global'));
   return (
     <footer className="bg-slate-950 border-t border-slate-900 text-slate-400 text-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-10">
@@ -120,9 +123,11 @@ export const Footer: React.FC<FooterProps> = ({ navigate }) => {
           <p>© {new Date().getFullYear()} NEXVORA GLOBAL. All rights reserved.</p>
           <div className="flex items-center gap-4">
             <span className="text-slate-400">Secure Protocol v1.0.0</span>
-            <button onClick={() => navigate('/admin')} className="text-slate-400 hover:text-slate-200">
-              Admin Portal
-            </button>
+            {isAuthorizedAdmin && (
+              <button onClick={() => navigate('/admin')} className="text-purple-400 hover:text-purple-300 font-medium transition-colors">
+                Admin Portal
+              </button>
+            )}
           </div>
         </div>
       </div>

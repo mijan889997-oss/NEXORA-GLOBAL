@@ -67,7 +67,19 @@ interface AdminPanelProps {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
-  const { user, apiFetch } = useAuth();
+  const { user, apiFetch, isAdmin } = useAuth();
+  const isAuthorized = Boolean(
+    user && (user.email === 'admin@nexvora.global' || isAdmin || user.role === 'SUPER ADMIN')
+  );
+
+  useEffect(() => {
+    if (!isAuthorized) {
+      const timer = setTimeout(() => {
+        navigate(user ? '/dashboard/earn' : '/login');
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthorized, user, navigate]);
   const [adminTab, setAdminTab] = useState<
     | 'overview'
     | 'users'
@@ -178,7 +190,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
   const [newProductFileSize, setNewProductFileSize] = useState('2.5');
 
   const fetchAdminData = async () => {
-    if (!user || user.role === 'USER') return;
+    if (!isAuthorized) return;
     setLoading(true);
     try {
       const [ov, us, tk, wd, gw, lg, ky, ts, gws, srv, jb, prd, tka, sbTasks, sbSubs] = await Promise.all([
@@ -935,21 +947,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
     }
   };
 
-  if (!user || user.role === 'USER') {
+  if (!isAuthorized) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-20 text-center space-y-4">
-        <div className="w-16 h-16 rounded-3xl bg-rose-950/60 border border-rose-800 text-rose-400 flex items-center justify-center mx-auto">
+        <div className="w-16 h-16 rounded-3xl bg-rose-950/60 border border-rose-800 text-rose-400 flex items-center justify-center mx-auto shadow-xl shadow-rose-950/40">
           <Lock className="w-8 h-8" />
         </div>
         <h2 className="text-2xl font-bold text-white font-['Space_Grotesk']">Administrative Access Restricted</h2>
-        <p className="text-xs text-slate-400 max-w-md mx-auto">
-          This portal is reserved for Super Admins, Finance Admins, and Support Officers. Please sign in with an authorized administrative role.
+        <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+          This portal is reserved strictly for Super Admins and authorized staff. You are being redirected to your dashboard...
         </p>
         <button
-          onClick={() => navigate('/login')}
-          className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold"
+          onClick={() => navigate(user ? '/dashboard/earn' : '/login')}
+          className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold"
         >
-          Sign In as Administrator
+          {user ? 'Return to User Dashboard' : 'Sign In as Administrator'}
         </button>
       </div>
     );
