@@ -53,8 +53,12 @@ import {
   fetchSupabaseSubmissions,
   updateSupabaseSubmissionStatus,
   deleteSupabaseSubmission,
+  fetchSupabaseWithdrawals,
+  updateSupabaseWithdrawalStatus,
+  deleteSupabaseWithdrawal,
   subscribeToMicrotasks,
   subscribeToSubmissions,
+  subscribeToWithdrawals,
 } from '../../lib/supabase';
 import type {
   User as UserType,
@@ -200,7 +204,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
     if (!isAuthorized) return;
     setLoading(true);
     try {
-      const [ov, us, tk, wd, gw, lg, ky, ts, gws, srv, jb, prd, tka, sbTasks, sbSubs, dspRes] = await Promise.all([
+      const [ov, us, tk, wd, gw, lg, ky, ts, gws, srv, jb, prd, tka, sbTasks, sbSubs, sbWds, dspRes] = await Promise.all([
         apiFetch('/api/admin/overview'),
         apiFetch('/api/admin/users'),
         apiFetch('/api/admin/tasks'),
@@ -216,6 +220,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
         apiFetch('/api/admin/tasks/analytics').catch(() => ({ analytics: null })),
         fetchSupabaseMicrotasks().catch(() => []),
         fetchSupabaseSubmissions().catch(() => []),
+        fetchSupabaseWithdrawals().catch(() => []),
         apiFetch('/api/admin/disputes').catch(() => apiFetch('/api/admin/support-tickets')).catch(() => ({ disputes: [] })),
       ]);
 
@@ -338,7 +343,44 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
 
       setTasksList(mergedTasks);
 
-      setWithdrawalsList(loadedWithdrawals);
+      // Merge backend withdrawals, Supabase withdrawals, and localStorage cache
+      let mergedWithdrawals: Withdrawal[] = [...loadedWithdrawals];
+      const existingWdIds = new Set(mergedWithdrawals.map((w: any) => w.id || w.withdrawalNumber));
+
+      if (Array.isArray(sbWds) && sbWds.length > 0) {
+        for (const sbw of sbWds) {
+          if (!existingWdIds.has(sbw.id) && !existingWdIds.has(sbw.withdrawalNumber)) {
+            mergedWithdrawals.unshift(sbw);
+            existingWdIds.add(sbw.id);
+          } else {
+            mergedWithdrawals = mergedWithdrawals.map((w: any) =>
+              (w.id === sbw.id || w.withdrawalNumber === sbw.withdrawalNumber) ? { ...w, ...sbw } : w
+            );
+          }
+        }
+      }
+
+      // Check localStorage for any recent submissions
+      try {
+        const localKey = 'nexvora_admin_withdrawals_cache';
+        const rawLocalWds = localStorage.getItem(localKey);
+        if (rawLocalWds) {
+          const parsedLocalWds = JSON.parse(rawLocalWds);
+          if (Array.isArray(parsedLocalWds)) {
+            for (const lw of parsedLocalWds) {
+              if (!existingWdIds.has(lw.id) && !existingWdIds.has(lw.withdrawalNumber)) {
+                mergedWithdrawals.unshift(lw);
+                existingWdIds.add(lw.id);
+              }
+            }
+          }
+        }
+      } catch {}
+
+      // Sort newest first
+      mergedWithdrawals.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setWithdrawalsList(mergedWithdrawals);
+
       setGateways(gw.gateways || []);
       setLogs(lg.audit_logs || []);
       setKycUsers(ky.verifications || []);
@@ -388,14 +430,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
       setTaskSubmissions(mergedSubmissions);
       setGatewaySpecs(gws?.specifications || []);
 
-      const completedWds = loadedWithdrawals.filter((w: any) => w.status === 'Completed');
-      const pendingWds = loadedWithdrawals.filter(
-        (w: any) => w.status === 'Pending' || w.status === 'Under Review' || w.status === 'Processing'
+      const completedWds = mergedWithdrawals.filter((w: any) => w.status === 'Completed' || w.status === 'APPROVED' || w.status === 'PAID');
+      const pendingWds = mergedWithdrawals.filter(
+        (w: any) => w.status === 'Pending' || w.status === 'Under Review' || w.status === 'Processing' || w.status === 'PENDING'
       );
 
       setStats({
         totalRegisteredUsers: loadedUsers.length,
-        totalDisbursedAmount: completedWds.reduce((acc: number, w: any) => acc + (w.netAmount || 0), 0),
+        totalDisbursedAmount: completedWds.reduce((acc: number, w: any) => acc + (w.netAmount || w.amount || 0), 0),
         pendingWithdrawalsAmount: pendingWds.reduce((acc: number, w: any) => acc + (w.amount || 0), 0),
         totalRealFeesEarned: completedWds.reduce((acc: number, w: any) => acc + (w.fee || 0), 0),
         activeServicesCount: loadedServices.length,
@@ -415,6 +457,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
     window.addEventListener('tasks_updated', handleSync);
     window.addEventListener('submissions_updated', handleSync);
     window.addEventListener('tickets_updated', handleSync);
+    window.addEventListener('withdrawals_updated', handleSync);
     window.addEventListener('storage', handleSync);
 
     // Supabase Real-time subscriptions for instant live syncing
@@ -426,14 +469,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
       console.log('[Supabase Realtime] Submissions table changed. Syncing UI...');
       fetchAdminData();
     });
+    const unsubWds = subscribeToWithdrawals(() => {
+      console.log('[Supabase Realtime] Withdrawals table changed. Syncing UI...');
+      fetchAdminData();
+    });
 
     return () => {
       window.removeEventListener('tasks_updated', handleSync);
       window.removeEventListener('submissions_updated', handleSync);
       window.removeEventListener('tickets_updated', handleSync);
+      window.removeEventListener('withdrawals_updated', handleSync);
       window.removeEventListener('storage', handleSync);
       if (typeof unsubMicro === 'function') unsubMicro();
       if (typeof unsubSubs === 'function') unsubSubs();
+      if (typeof unsubWds === 'function') unsubWds();
     };
   }, [user]);
 
@@ -461,10 +510,71 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
               : w
           )
         );
+
+        // 1. Supabase Withdrawal status update
+        updateSupabaseWithdrawalStatus(currentRejectId, 'REJECTED', {
+          rejectionReason: reasonToUse,
+          reviewedBy: user?.email || 'Admin',
+        }).catch((err) => console.warn('[Supabase] Withdrawal reject status error:', err));
+
+        // 2. Refund balance and points to user in Supabase and local storage
+        const targetWd = withdrawalsList.find((w) => w.id === currentRejectId);
+        if (targetWd?.userId) {
+          const refundAmount = targetWd.amount || 0;
+          const refundPoints = Math.round(refundAmount * 1000);
+
+          if (refundAmount > 0) {
+            (async () => {
+              try {
+                const { data: profData } = await supabase
+                  .from('profiles')
+                  .select('points, balance')
+                  .eq('id', targetWd.userId)
+                  .single();
+
+                if (profData) {
+                  const curPts = Number((profData as any).points || 0);
+                  const curBal = Number((profData as any).balance || 0);
+                  await supabase
+                    .from('profiles')
+                    .update({
+                      points: curPts + refundPoints,
+                      balance: Number((curBal + refundAmount).toFixed(4)),
+                      updated_at: new Date().toISOString(),
+                    })
+                    .eq('id', targetWd.userId);
+                }
+              } catch (profErr) {
+                console.warn('[Supabase Profile Refund Notice]:', profErr);
+              }
+            })();
+
+            try {
+              const uKey = `points_${targetWd.userId}`;
+              const existingPts = parseInt(localStorage.getItem(uKey) || '0', 10);
+              localStorage.setItem(uKey, (existingPts + refundPoints).toString());
+
+              if (user?.id === targetWd.userId) {
+                const curUserPts = parseInt(localStorage.getItem('nexvora_user_points') || '0', 10);
+                const newUserPts = curUserPts + refundPoints;
+                const newUserBal = (newUserPts / 1000).toFixed(2);
+                localStorage.setItem('nexvora_user_points', newUserPts.toString());
+                localStorage.setItem('points', newUserPts.toString());
+                localStorage.setItem('user_points', newUserPts.toString());
+                localStorage.setItem('nexvora_wallet_balance', newUserBal);
+                localStorage.setItem('nexvora_user_balance', newUserBal);
+                window.dispatchEvent(new CustomEvent('balanceUpdated', { detail: { newBalance: parseFloat(newUserBal), points: newUserPts } }));
+                window.dispatchEvent(new CustomEvent('pointsUpdated', { detail: { newBalance: parseFloat(newUserBal), points: newUserPts } }));
+              }
+            } catch {}
+          }
+        }
+
         await apiFetch(`/api/admin/withdrawals/${currentRejectId}/status`, {
           method: 'PUT',
           body: JSON.stringify({ status: 'Rejected', adminFeedback: reasonToUse }),
         });
+        window.dispatchEvent(new Event('withdrawals_updated'));
         setActionFeedback('Withdrawal rejected and funds automatically refunded to member ledger.');
       } else if (currentRejectType === 'task_submission') {
         // Optimistic UI state update immediately
@@ -536,6 +646,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
             : w
         )
       );
+
+      // 1. Supabase Withdrawal status update
+      updateSupabaseWithdrawalStatus(wdToComplete.id, 'APPROVED', {
+        paymentRef: refToUse,
+        reviewedBy: user?.email || 'Admin',
+      }).catch((err) => console.warn('[Supabase] Withdrawal approve status error:', err));
+
       await apiFetch(`/api/admin/withdrawals/${wdToComplete.id}/status`, {
         method: 'PUT',
         body: JSON.stringify({
@@ -543,6 +660,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
           paymentConfirmationRef: refToUse,
         }),
       });
+
+      window.dispatchEvent(new Event('withdrawals_updated'));
       setActionFeedback(`Withdrawal ${wdToComplete.withdrawalNumber} marked completed with Reference #${refToUse}.`);
       await fetchAdminData();
     } catch (err: any) {

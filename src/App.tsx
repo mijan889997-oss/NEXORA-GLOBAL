@@ -43,7 +43,7 @@ const AdminRouteGuard: React.FC<{
         Administrative Access Restricted
       </h2>
       <p className="text-xs text-slate-400 max-w-md mb-6 leading-relaxed">
-        The route <code className="text-rose-400 bg-rose-950/60 px-2 py-0.5 rounded border border-rose-800 font-mono">/admin</code> is strictly reserved for authorized platform administrators and <code className="text-cyan-300">admin@nexvora.global</code>.
+        The route <code className="text-rose-400 bg-rose-950/60 px-2 py-0.5 rounded border border-rose-800 font-mono">/admin</code> is strictly reserved for authorized platform administrators with verified credentials.
       </p>
       <div className="flex items-center gap-3">
         <button

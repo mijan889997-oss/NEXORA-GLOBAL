@@ -5,7 +5,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import type { Task, TaskSubmission } from '../types';
+import type { Task, TaskSubmission, Withdrawal, WithdrawalStatus } from '../types';
 
 export const SUPABASE_URL =
   (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_URL) ||
@@ -539,3 +539,315 @@ export function subscribeToSubmissions(onChange: (payload: any) => void) {
     return () => {};
   }
 }
+
+// ==============================================================================
+// WITHDRAWALS CRUD & SYNC
+// ==============================================================================
+
+/**
+ * Normalizes Supabase database row to frontend Withdrawal interface
+ */
+export function mapRowToWithdrawal(row: any): Withdrawal {
+  const accountNumber =
+    row.account_number ||
+    row.accountNumber ||
+    row.account_details?.accountNumber ||
+    row.accountDetails?.accountNumber ||
+    row.accountDetails?.emailOrWalletAddress ||
+    row.account_identifier ||
+    row.accountIdentifier ||
+    (typeof row.account_details === 'string' ? row.account_details : '') ||
+    (typeof row.accountDetails === 'string' ? row.accountDetails : '') ||
+    '';
+
+  const method = row.method || row.payment_method || row.paymentMethod || 'bKash Personal';
+  const amount = Number(row.amount || 0);
+  const fee = Number(row.fee || 0);
+  const netAmount = Number(row.net_amount ?? row.netAmount ?? (amount - fee));
+  const rawStatus = String(row.status || 'PENDING').toUpperCase();
+
+  let normalizedStatus: WithdrawalStatus = 'Pending';
+  if (rawStatus === 'APPROVED' || rawStatus === 'PAID' || rawStatus === 'COMPLETED') {
+    normalizedStatus = 'Completed';
+  } else if (rawStatus === 'REJECTED' || rawStatus === 'CANCELLED') {
+    normalizedStatus = 'Rejected';
+  } else if (rawStatus === 'PROCESSING') {
+    normalizedStatus = 'Processing';
+  } else if (rawStatus === 'UNDER REVIEW' || rawStatus === 'UNDER_REVIEW') {
+    normalizedStatus = 'Under Review';
+  } else {
+    normalizedStatus = 'Pending';
+  }
+
+  const generatedWdNumber = row.withdrawal_number || row.withdrawalNumber || `WD-${String(row.id || '').replace(/[^a-zA-Z0-9]/g, '').slice(-6).toUpperCase() || Math.floor(100000 + Math.random() * 900000)}`;
+
+  return {
+    id: String(row.id),
+    withdrawalNumber: generatedWdNumber,
+    userId: String(row.user_id || row.userId || ''),
+    userName: row.user_name || row.userName || 'Member',
+    userEmail: row.user_email || row.userEmail || '',
+    accountIdentifier: accountNumber,
+    walletId: row.wallet_id || row.walletId || 'wal_default',
+    amount,
+    fee,
+    netAmount,
+    paymentMethod: method as any,
+    accountDetails: {
+      accountNumber,
+      emailOrWalletAddress: accountNumber,
+      accountHolderName: row.user_name || row.userName || 'Member',
+    },
+    status: normalizedStatus,
+    adminFeedback: row.rejection_reason || row.admin_feedback || row.adminFeedback || undefined,
+    paymentConfirmationRef: row.payment_confirmation_ref || row.paymentConfirmationRef || undefined,
+    createdAt: row.created_at || row.createdAt || new Date().toISOString(),
+    updatedAt: row.updated_at || row.updatedAt || new Date().toISOString(),
+  };
+}
+
+/**
+ * Fetch all withdrawals from Supabase (for Admin Panel)
+ */
+export async function fetchSupabaseWithdrawals(): Promise<Withdrawal[]> {
+  try {
+    const { data, error } = await supabase
+      .from('withdrawals')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.warn('[Supabase] fetchSupabaseWithdrawals error:', error.message);
+      return [];
+    }
+
+    if (Array.isArray(data)) {
+      return data.map(mapRowToWithdrawal);
+    }
+    return [];
+  } catch (err) {
+    console.warn('[Supabase] fetchSupabaseWithdrawals exception:', err);
+    return [];
+  }
+}
+
+/**
+ * Fetch a single user's withdrawals from Supabase
+ */
+export async function fetchUserSupabaseWithdrawals(userId: string): Promise<Withdrawal[]> {
+  if (!userId) return [];
+  try {
+    const { data, error } = await supabase
+      .from('withdrawals')
+      .select('*')
+      .or(`user_id.eq.${userId},userId.eq.${userId}`)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      // Fallback to querying all and filtering if OR filter isn't supported
+      const all = await fetchSupabaseWithdrawals();
+      return all.filter((w) => w.userId === userId);
+    }
+
+    if (Array.isArray(data)) {
+      return data.map(mapRowToWithdrawal);
+    }
+    return [];
+  } catch (err) {
+    console.warn('[Supabase] fetchUserSupabaseWithdrawals exception:', err);
+    return [];
+  }
+}
+
+/**
+ * Insert a new withdrawal request into Supabase public.withdrawals table
+ */
+export async function insertSupabaseWithdrawal(payload: {
+  id?: string;
+  userId: string;
+  userName?: string;
+  userEmail?: string;
+  amount: number;
+  method: string;
+  accountNumber: string;
+  fee?: number;
+  netAmount?: number;
+}): Promise<{ success: boolean; withdrawal?: Withdrawal; error?: any }> {
+  const rowId = payload.id || `wd_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  const wdNumber = `WD-${Math.floor(100000 + Math.random() * 900000)}`;
+  const now = new Date().toISOString();
+  const fee = payload.fee || 0;
+  const netAmount = payload.netAmount || payload.amount;
+
+  const rowData: Record<string, any> = {
+    id: rowId,
+    user_id: payload.userId,
+    userId: payload.userId,
+    user_name: payload.userName || 'Member',
+    userName: payload.userName || 'Member',
+    user_email: payload.userEmail || '',
+    userEmail: payload.userEmail || '',
+    amount: payload.amount,
+    method: payload.method,
+    payment_method: payload.method,
+    paymentMethod: payload.method,
+    account_number: payload.accountNumber,
+    accountNumber: payload.accountNumber,
+    account_details: {
+      accountNumber: payload.accountNumber,
+      emailOrWalletAddress: payload.accountNumber,
+    },
+    accountDetails: {
+      accountNumber: payload.accountNumber,
+      emailOrWalletAddress: payload.accountNumber,
+    },
+    status: 'PENDING',
+    withdrawal_number: wdNumber,
+    withdrawalNumber: wdNumber,
+    fee,
+    net_amount: netAmount,
+    netAmount,
+    created_at: now,
+    createdAt: now,
+    updated_at: now,
+    updatedAt: now,
+  };
+
+  try {
+    const { data, error } = await supabase
+      .from('withdrawals')
+      .insert([rowData])
+      .select()
+      .single();
+
+    if (error) {
+      console.warn('[Supabase] insertSupabaseWithdrawal notice (attempting minimal row):', error.message);
+      // Fallback with strictly minimal columns matching schema: id, user_id, user_name, user_email, amount, method, account_number, status, created_at
+      const minimalRow = {
+        id: rowId,
+        user_id: payload.userId,
+        user_name: payload.userName || 'Member',
+        user_email: payload.userEmail || '',
+        amount: payload.amount,
+        method: payload.method,
+        account_number: payload.accountNumber,
+        status: 'PENDING',
+        created_at: now,
+      };
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('withdrawals')
+        .insert([minimalRow])
+        .select()
+        .single();
+
+      if (fallbackError) {
+        console.error('[Supabase] insertSupabaseWithdrawal fallback error:', fallbackError);
+        return { success: false, error: fallbackError };
+      }
+      return { success: true, withdrawal: mapRowToWithdrawal(fallbackData || minimalRow) };
+    }
+
+    return { success: true, withdrawal: mapRowToWithdrawal(data || rowData) };
+  } catch (err: any) {
+    console.warn('[Supabase] insertSupabaseWithdrawal exception:', err);
+    return { success: false, error: err };
+  }
+}
+
+/**
+ * Update withdrawal status in Supabase (e.g. Approve/Paid or Reject/Refund)
+ */
+export async function updateSupabaseWithdrawalStatus(
+  id: string,
+  status: 'APPROVED' | 'PAID' | 'REJECTED' | 'PENDING' | 'Completed' | 'Rejected',
+  options?: {
+    rejectionReason?: string;
+    paymentRef?: string;
+    reviewedBy?: string;
+  }
+): Promise<{ success: boolean; error?: any }> {
+  const normalizedStatus = status.toUpperCase();
+  const now = new Date().toISOString();
+
+  const updates: Record<string, any> = {
+    status: normalizedStatus,
+    updated_at: now,
+    updatedAt: now,
+  };
+
+  if (options?.rejectionReason) {
+    updates.rejection_reason = options.rejectionReason;
+    updates.rejectionReason = options.rejectionReason;
+    updates.admin_feedback = options.rejectionReason;
+    updates.adminFeedback = options.rejectionReason;
+  }
+
+  if (options?.paymentRef) {
+    updates.payment_confirmation_ref = options.paymentRef;
+    updates.paymentConfirmationRef = options.paymentRef;
+  }
+
+  if (options?.reviewedBy) {
+    updates.reviewed_by = options.reviewedBy;
+    updates.reviewedBy = options.reviewedBy;
+    updates.reviewed_at = now;
+  }
+
+  try {
+    const { error } = await supabase
+      .from('withdrawals')
+      .update(updates)
+      .eq('id', id);
+
+    if (error) {
+      console.warn('[Supabase] updateSupabaseWithdrawalStatus error (attempting minimal status update):', error.message);
+      const { error: minError } = await supabase
+        .from('withdrawals')
+        .update({ status: normalizedStatus })
+        .eq('id', id);
+
+      if (minError) {
+        return { success: false, error: minError };
+      }
+    }
+    return { success: true };
+  } catch (err: any) {
+    console.warn('[Supabase] updateSupabaseWithdrawalStatus exception:', err);
+    return { success: false, error: err };
+  }
+}
+
+/**
+ * Delete a withdrawal record from Supabase
+ */
+export async function deleteSupabaseWithdrawal(id: string): Promise<{ success: boolean; error?: any }> {
+  try {
+    const { error } = await supabase.from('withdrawals').delete().eq('id', id);
+    return { success: !error, error };
+  } catch (err: any) {
+    console.warn('[Supabase] deleteSupabaseWithdrawal exception:', err);
+    return { success: false, error: err };
+  }
+}
+
+/**
+ * Subscribe to realtime changes on 'withdrawals' table
+ */
+export function subscribeToWithdrawals(onChange: (payload: any) => void) {
+  try {
+    const channel = supabase
+      .channel('public:withdrawals')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'withdrawals' }, (payload) => {
+        onChange(payload);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  } catch (err) {
+    console.warn('[Supabase] Realtime withdrawals subscription error:', err);
+    return () => {};
+  }
+}
+

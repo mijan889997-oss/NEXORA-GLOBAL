@@ -2,6 +2,13 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useAuth } from '../../context/AuthContext';
 import { useUserBalance } from '../../lib/userBalance';
 import {
+  supabase,
+  insertSupabaseWithdrawal,
+  fetchUserSupabaseWithdrawals,
+  fetchSupabaseWithdrawals,
+  subscribeToWithdrawals,
+} from '../../lib/supabase';
+import {
   Wallet,
   ArrowUpRight,
   ShieldCheck,
@@ -90,7 +97,7 @@ const DEFAULT_PAYOUT_METHODS: {
 ];
 
 export const WithdrawalsView: React.FC<WithdrawalsViewProps> = ({ navigate, onBalanceUpdated }) => {
-  const { user, wallet, apiFetch } = useAuth();
+  const { user, wallet, updateWallet, apiFetch } = useAuth();
   const userBalance = useUserBalance();
 
   // Form states
@@ -149,12 +156,19 @@ export const WithdrawalsView: React.FC<WithdrawalsViewProps> = ({ navigate, onBa
   const parsedAmount = parseFloat(withdrawAmount) || 0;
   const estimatedBdt = Math.round(parsedAmount * currentMethodConfig.exchangeRateBdt);
 
-  // Synchronize and load withdrawals safely with local persistence fallback
+  // Synchronize and load withdrawals directly from Supabase
   const loadWithdrawalsData = useCallback(async () => {
     if (!user?.id) return;
     setLoadingHistory(true);
     try {
-      // 1. Check local storage cache for instant rendering
+      // 1. Fetch live user withdrawals from Supabase
+      const supaWds = await fetchUserSupabaseWithdrawals(user.id).catch(() => []);
+
+      // 2. Fetch from backend API as secondary fallback
+      const wdRes = await apiFetch('/api/withdrawals/my').catch(() => ({ withdrawals: [] }));
+      const backendWds: Withdrawal[] = wdRes?.withdrawals || [];
+
+      // 3. Check local cache
       let localWds: Withdrawal[] = [];
       try {
         const raw = localStorage.getItem(`nexvora_withdrawals_${user.id}`);
@@ -164,23 +178,29 @@ export const WithdrawalsView: React.FC<WithdrawalsViewProps> = ({ navigate, onBa
         }
       } catch {}
 
-      // 2. Fetch from backend API
-      const wdRes = await apiFetch('/api/withdrawals/my').catch(() => ({ withdrawals: [] }));
+      // Combine and deduplicate
+      const mergedMap = new Map<string, Withdrawal>();
 
-      let mergedList = [...localWds];
-      if (wdRes?.withdrawals && Array.isArray(wdRes.withdrawals)) {
-        const existingIds = new Set(mergedList.map((w) => w.id || w.withdrawalNumber));
-        for (const w of wdRes.withdrawals) {
-          if (!existingIds.has(w.id) && !existingIds.has(w.withdrawalNumber)) {
-            mergedList.push(w);
-            existingIds.add(w.id);
-          }
-        }
+      // Put local and backend first
+      for (const w of localWds) {
+        if (w.id) mergedMap.set(w.id, w);
+      }
+      for (const w of backendWds) {
+        if (w.id) mergedMap.set(w.id, { ...mergedMap.get(w.id), ...w });
+      }
+      // Supabase is authoritative
+      for (const w of supaWds) {
+        if (w.id) mergedMap.set(w.id, { ...mergedMap.get(w.id), ...w });
       }
 
+      const mergedList = Array.from(mergedMap.values());
       // Sort newest first
       mergedList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       setWithdrawals(mergedList);
+
+      try {
+        localStorage.setItem(`nexvora_withdrawals_${user.id}`, JSON.stringify(mergedList));
+      } catch {}
     } catch (err) {
       console.warn('Withdrawals data fetch notice:', err);
     } finally {
@@ -188,13 +208,29 @@ export const WithdrawalsView: React.FC<WithdrawalsViewProps> = ({ navigate, onBa
     }
   }, [user?.id, apiFetch]);
 
-  // Trigger on initial mount or user ID change ONLY
-  const isFirstLoadRef = useRef(false);
+  // Initial load and Realtime Supabase Subscription
   useEffect(() => {
-    if (user?.id && !isFirstLoadRef.current) {
-      isFirstLoadRef.current = true;
+    if (user?.id) {
       loadWithdrawalsData();
     }
+
+    // Subscribe to realtime changes on public.withdrawals table
+    const unsubscribe = subscribeToWithdrawals(() => {
+      console.log('[Supabase Realtime] Withdrawal update received. Refreshing list...');
+      loadWithdrawalsData();
+    });
+
+    const handleSync = () => loadWithdrawalsData();
+    window.addEventListener('withdrawals_updated', handleSync);
+    window.addEventListener('balanceUpdated', handleSync);
+    window.addEventListener('storage', handleSync);
+
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+      window.removeEventListener('withdrawals_updated', handleSync);
+      window.removeEventListener('balanceUpdated', handleSync);
+      window.removeEventListener('storage', handleSync);
+    };
   }, [user?.id, loadWithdrawalsData]);
 
   // Quick Amount Preset handler
@@ -290,12 +326,15 @@ export const WithdrawalsView: React.FC<WithdrawalsViewProps> = ({ navigate, onBa
 
     setIsSubmitting(true);
     const generatedWdNumber = `WD-${Math.floor(100000 + Math.random() * 900000)}`;
-    const generatedWdId = `wd_${Date.now()}`;
+    const generatedWdId = `wd_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const nowIso = new Date().toISOString();
 
     const newWithdrawalRecord: Withdrawal = {
       id: generatedWdId,
       withdrawalNumber: generatedWdNumber,
       userId: user?.id || 'guest',
+      userName: user?.fullName || user?.username || 'Member',
+      userEmail: user?.email || '',
       walletId: wallet?.id || 'wal_default',
       amount: amountNum,
       fee: 0,
@@ -304,44 +343,56 @@ export const WithdrawalsView: React.FC<WithdrawalsViewProps> = ({ navigate, onBa
       accountDetails: {
         emailOrWalletAddress: cleanAccount,
         accountNumber: cleanAccount,
-        accountHolderName: accountHolderName.trim() || user?.fullName || 'N/A',
+        accountHolderName: accountHolderName.trim() || user?.fullName || 'Member',
       },
       status: 'Pending',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: nowIso,
+      updatedAt: nowIso,
     };
 
     try {
-      // 1. Submit to backend API
-      let serverResponse: any = null;
-      try {
-        serverResponse = await apiFetch('/api/withdrawals/request', {
-          method: 'POST',
-          body: JSON.stringify({
-            amount: amountNum,
-            paymentMethod: withdrawMethod,
-            accountDetails: {
-              emailOrWalletAddress: cleanAccount,
-              accountNumber: cleanAccount,
-              accountHolderName: accountHolderName.trim() || user?.fullName || 'N/A',
-            },
-            clientBalance: availableBalance,
-          }),
-        });
-      } catch (apiErr) {
-        console.warn('[Withdrawal API Notice - local fallback engaged]:', apiErr);
-      }
+      // 1. Direct INSERT into Supabase public.withdrawals table
+      const supaInsertResult = await insertSupabaseWithdrawal({
+        id: generatedWdId,
+        userId: user?.id || 'guest',
+        userName: user?.fullName || user?.username || 'Member',
+        userEmail: user?.email || '',
+        amount: amountNum,
+        method: withdrawMethod,
+        accountNumber: cleanAccount,
+        fee: 0,
+        netAmount: amountNum,
+      });
 
-      // 2. Persist locally to history
-      const updatedHistory = [
-        serverResponse?.withdrawal || newWithdrawalRecord,
-        ...withdrawals.filter((w) => w.id !== generatedWdId && w.withdrawalNumber !== generatedWdNumber),
-      ];
-      setWithdrawals(updatedHistory);
+      const finalRecord = supaInsertResult.withdrawal || newWithdrawalRecord;
+
+      // 2. Direct Profile balance & points deduction in Supabase
       if (user?.id) {
         try {
-          localStorage.setItem(`nexvora_withdrawals_${user.id}`, JSON.stringify(updatedHistory));
-        } catch {}
+          const { data: profData } = await supabase
+            .from('profiles')
+            .select('points, balance')
+            .eq('id', user.id)
+            .single();
+
+          if (profData) {
+            const currentPts = Number((profData as any).points || 0);
+            const currentBal = Number((profData as any).balance || 0);
+            const updatedBal = Math.max(0, Number((currentBal - amountNum).toFixed(4)));
+            const updatedPts = Math.max(0, Math.round(updatedBal * 1000));
+
+            await supabase
+              .from('profiles')
+              .update({
+                balance: updatedBal,
+                points: updatedPts,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('id', user.id);
+          }
+        } catch (supaErr) {
+          console.warn('[Supabase Profile Deduction]:', supaErr);
+        }
       }
 
       // 3. Deduct balance from local store and dispatch non-looping balance sync
@@ -356,11 +407,55 @@ export const WithdrawalsView: React.FC<WithdrawalsViewProps> = ({ navigate, onBa
         localStorage.setItem(`points_${user.id}`, remainingPoints.toString());
       }
 
-      // 4. Success feedback & field reset
+      // 4. Update active wallet state
+      if (updateWallet) {
+        updateWallet({
+          availableBalance: remainingBalance,
+          pendingBalance: (wallet?.pendingBalance || 0) + amountNum,
+        });
+      }
+
+      // 5. Submit to backend API as secondary sync
+      try {
+        await apiFetch('/api/withdrawals/request', {
+          method: 'POST',
+          body: JSON.stringify({
+            amount: amountNum,
+            paymentMethod: withdrawMethod,
+            accountDetails: {
+              emailOrWalletAddress: cleanAccount,
+              accountNumber: cleanAccount,
+              accountHolderName: accountHolderName.trim() || user?.fullName || 'N/A',
+            },
+            clientBalance: availableBalance,
+          }),
+        });
+      } catch (apiErr) {
+        console.warn('[Withdrawal API sync notice]:', apiErr);
+      }
+
+      // 6. Persist to local state & storage
+      const updatedHistory = [
+        finalRecord,
+        ...withdrawals.filter((w) => w.id !== generatedWdId && w.withdrawalNumber !== generatedWdNumber),
+      ];
+      setWithdrawals(updatedHistory);
+      if (user?.id) {
+        try {
+          localStorage.setItem(`nexvora_withdrawals_${user.id}`, JSON.stringify(updatedHistory));
+        } catch {}
+      }
+
+      // 7. Dispatch events for real-time balance propagation
+      window.dispatchEvent(new CustomEvent('balanceUpdated', { detail: { newBalance: remainingBalance, points: remainingPoints } }));
+      window.dispatchEvent(new CustomEvent('pointsUpdated', { detail: { newBalance: remainingBalance, points: remainingPoints } }));
+      window.dispatchEvent(new Event('withdrawals_updated'));
+
+      // 8. Success feedback & field reset
       setWithdrawMsg({
         type: 'success',
-        text: `🎉 উত্তোলন সফলভাবে রিকুয়েস্ট করা হয়েছে! ট্র্যাকিং আইডি: ${generatedWdNumber}। কমপ্লায়েন্স টিম যাচাই বাছাই করে দ্রুত পেমেন্ট পাঠিয়ে দেবে।`,
-        wdId: generatedWdNumber,
+        text: `🎉 উত্তোলন সফলভাবে রিকুয়েস্ট করা হয়েছে! ট্র্যাকিং আইডি: ${finalRecord.withdrawalNumber}। কমপ্লায়েন্স টিম যাচাই বাছাই করে দ্রুত পেমেন্ট পাঠিয়ে দেবে।`,
+        wdId: finalRecord.withdrawalNumber,
       });
 
       setWithdrawAmount('');

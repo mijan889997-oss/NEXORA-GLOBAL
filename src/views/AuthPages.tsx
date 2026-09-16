@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Lock, Mail, User, Phone, Sparkles, AlertCircle, ArrowRight, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { Lock, Mail, User, Phone, Sparkles, AlertCircle, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 interface AuthPagesProps {
   mode: 'login' | 'register';
@@ -77,11 +77,6 @@ export const AuthPages: React.FC<AuthPagesProps> = ({ mode, navigate }) => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleAdminPrefill = () => {
-    setEmail('admin@nexvora.global');
-    setPassword('admin123');
   };
 
   return (
@@ -295,28 +290,6 @@ export const AuthPages: React.FC<AuthPagesProps> = ({ mode, navigate }) => {
             )}
           </div>
         </div>
-
-        {/* Super Admin Bootstrap Helper Card */}
-        {mode === 'login' && (
-          <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 text-xs text-slate-400">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="font-semibold text-white flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
-                Initial Super Admin Bootstrap
-              </span>
-              <button
-                type="button"
-                onClick={handleAdminPrefill}
-                className="text-[11px] font-semibold text-cyan-400 hover:underline px-2 py-0.5 rounded bg-slate-800"
-              >
-                Autofill Credentials
-              </button>
-            </div>
-            <p className="text-[11px] leading-relaxed">
-              Login as <code className="text-cyan-300">admin@nexvora.global</code> (Password: <code className="text-cyan-300">admin123</code>) to access the Super Admin Panel, configure payment gateways, and review task submissions.
-            </p>
-          </div>
-        )}
       </div>
     </div>
   );
