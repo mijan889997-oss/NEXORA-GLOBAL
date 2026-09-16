@@ -78,7 +78,7 @@ interface DashboardViewProps {
   navigate: (path: string) => void;
 }
 
-export const DashboardView: React.FC<DashboardViewProps> = ({ currentSubpath = 'overview', navigate }) => {
+export const DashboardView: React.FC<DashboardViewProps> = ({ currentSubpath = 'earn', navigate }) => {
   const { user, profile, wallet, refreshMe, apiFetch } = useAuth();
   const {
     points: liveUserPoints,
@@ -90,12 +90,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ currentSubpath = '
     formattedPoints: liveFormattedPoints,
   } = useUserBalance();
 
-  const [activeSection, setActiveSection] = useState<string>(currentSubpath);
+  const [activeSection, setActiveSection] = useState<string>(currentSubpath || 'earn');
   const [mobileNavOpen, setMobileNavOpen] = useState<boolean>(false);
 
   // Synchronize with URL path and ensure mobile drawer auto-collapses on page load/change
   useEffect(() => {
-    setActiveSection(currentSubpath || 'overview');
+    setActiveSection(currentSubpath || 'earn');
     setMobileNavOpen(false);
   }, [currentSubpath]);
 
@@ -367,14 +367,29 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ currentSubpath = '
       if (rawOv) statusOverrides = JSON.parse(rawOv);
     } catch {}
 
-    let merged = [...serverTasksList];
+    let merged = [...serverTasksList].filter(
+      (t: any) =>
+        t &&
+        t.id !== 'TASK-101' &&
+        t.id !== 'TASK-102' &&
+        !t.title?.includes('Sign up and verify profile on partner website') &&
+        !t.title?.includes('App feedback & UI bug testing')
+    );
     try {
       const rawLocal = localStorage.getItem('nexvora_custom_tasks');
       if (rawLocal) {
         const parsed = JSON.parse(rawLocal);
         if (Array.isArray(parsed)) {
+          const filtered = parsed.filter(
+            (t: any) =>
+              t &&
+              t.id !== 'TASK-101' &&
+              t.id !== 'TASK-102' &&
+              !t.title?.includes('Sign up and verify profile on partner website') &&
+              !t.title?.includes('App feedback & UI bug testing')
+          );
           const existingIds = new Set(merged.map((t: any) => t.id));
-          for (const lt of parsed) {
+          for (const lt of filtered) {
             if (!existingIds.has(lt.id)) {
               merged.unshift(lt);
               existingIds.add(lt.id);
@@ -440,7 +455,29 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ currentSubpath = '
         setMessages(mg);
       }
       if (rf && rf.referralCode) setReferralData(rf);
-      if (tk?.tickets) setTickets(tk.tickets);
+      
+      let mergedUserTickets = [...(tk?.tickets || [])];
+      const existingTicketIds = new Set(mergedUserTickets.map((t: any) => t.id || t.ticketNumber));
+      try {
+        const rawLocal = localStorage.getItem('nexvora_support_tickets');
+        if (rawLocal) {
+          const parsed = JSON.parse(rawLocal);
+          if (Array.isArray(parsed)) {
+            const userFilter = parsed.filter((t: any) => t.raisedById === user.id || t.userEmail === user.email || !t.raisedById || t.raisedById === 'guest');
+            for (const lt of userFilter) {
+              if (!existingTicketIds.has(lt.id) && !existingTicketIds.has(lt.ticketNumber)) {
+                mergedUserTickets.unshift(lt);
+                existingTicketIds.add(lt.id);
+              } else {
+                mergedUserTickets = mergedUserTickets.map((t: any) => (t.id === lt.id || t.ticketNumber === lt.ticketNumber ? { ...t, ...lt } : t));
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Dashboard support ticket parse warning:', e);
+      }
+      setTickets(mergedUserTickets);
 
       // Merge backend tasks with Supabase microtasks
       const rawTasks = tks?.tasks || [];
@@ -662,15 +699,47 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ currentSubpath = '
   const handleCreateTicket = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await apiFetch('/api/support/tickets', {
+      const payload = {
+        subject: ticketSubject,
+        category: ticketCategory,
+        description: ticketDesc,
+        userName: user?.fullName || (user as any)?.name || 'Member',
+        email: user?.email || '',
+      };
+
+      const res = await apiFetch('/api/support/tickets', {
         method: 'POST',
-        body: JSON.stringify({
-          subject: ticketSubject,
+        body: JSON.stringify(payload),
+      }).catch(() => null);
+
+      // Save to localStorage for instant synchronization across tabs
+      try {
+        const rawLocal = localStorage.getItem('nexvora_support_tickets');
+        let localTickets: any[] = rawLocal ? JSON.parse(rawLocal) : [];
+        const ticketNum = res?.ticket?.ticketNumber || `TKT-${Math.floor(100000 + Math.random() * 900000)}`;
+        const localObj = {
+          id: res?.ticket?.id || `tkt_${Date.now()}`,
+          ticketNumber: ticketNum,
+          raisedById: user?.id || 'guest',
+          userName: user?.fullName || (user as any)?.name || 'Member',
+          userEmail: user?.email || '',
           category: ticketCategory,
+          subject: ticketSubject,
           description: ticketDesc,
-        }),
-      });
-      setTicketMsg('Support ticket logged successfully. Staff will respond.');
+          status: 'open',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          replies: [],
+        };
+        localTickets.unshift(localObj);
+        localStorage.setItem('nexvora_support_tickets', JSON.stringify(localTickets));
+        window.dispatchEvent(new Event('tickets_updated'));
+        window.dispatchEvent(new Event('storage'));
+      } catch (err) {
+        console.warn('Local ticket save notice:', err);
+      }
+
+      setTicketMsg('Support ticket logged successfully! Our team will review and reply shortly.');
       setTicketSubject('');
       setTicketDesc('');
       loadDashboardData();
@@ -681,18 +750,25 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ currentSubpath = '
 
   const quickNavTabs = [
     {
-      id: 'overview',
-      label: 'Dashboard',
-      icon: LayoutDashboard,
-      badge: null,
-      badgeBg: '',
-    },
-    {
       id: 'earn',
       label: '🔥 Micro-Tasks',
       icon: Flame,
       badge: 'HOT',
       badgeBg: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+    },
+    {
+      id: 'tasks',
+      label: '✅ Verified Tasks',
+      icon: CheckSquare,
+      badge: 'Escrow',
+      badgeBg: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+    },
+    {
+      id: 'courses',
+      label: '🎓 Academy Courses',
+      icon: BookOpen,
+      badge: 'Udemy',
+      badgeBg: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
     },
     {
       id: 'bonus',
@@ -709,11 +785,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ currentSubpath = '
       badgeBg: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
     },
     {
-      id: 'marketplace',
-      label: '📦 Marketplace',
+      id: 'products',
+      label: '📦 Products',
       icon: Package,
-      badge: 'Verified',
-      badgeBg: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+      badge: 'NEW',
+      badgeBg: 'bg-pink-500/20 text-pink-300 border-pink-500/30',
+    },
+    {
+      id: 'overview',
+      label: '📊 Overview',
+      icon: LayoutDashboard,
+      badge: null,
+      badgeBg: '',
     },
     {
       id: 'wallet',
@@ -728,21 +811,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ currentSubpath = '
       icon: Users,
       badge: '20%',
       badgeBg: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
-    },
-    {
-      id: 'jobs',
-      label: '💼 Freelance Jobs',
-      icon: Briefcase,
-      isExternal: true,
-      badge: 'Live',
-      badgeBg: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-    },
-    {
-      id: 'tasks',
-      label: '📋 My Tasks',
-      icon: CheckSquare,
-      badge: null,
-      badgeBg: '',
     },
     {
       id: 'profile',
@@ -760,19 +828,27 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ currentSubpath = '
     },
   ];
 
+  const isAdminUser = Boolean(
+    user && (user.email === 'admin@nexvora.global' || user.role === 'SUPER ADMIN' || user.role === 'ADMIN')
+  );
+
   const navItems = [
-    { id: 'overview', label: 'Dashboard Overview', icon: LayoutDashboard },
     { id: 'earn', label: 'Earn / Micro-Tasks', icon: Flame, badge: 'HOT' },
+    { id: 'tasks', label: 'Verified Paid Tasks', icon: CheckSquare },
+    { id: 'courses', label: 'Academy Courses', icon: BookOpen },
+    { id: 'products', label: 'Digital Products', icon: Package, badge: 'NEW' },
     { id: 'bonus', label: 'Daily Bonus', icon: Gift, badge: '$0.01' },
     { id: 'withdrawals', label: 'Withdrawals', icon: ArrowUpRight, badge: 'Fast' },
+    { id: 'overview', label: 'Dashboard Overview', icon: LayoutDashboard },
     { id: 'marketplace', label: 'Marketplace Hub', icon: Package, badge: 'Verified' },
     { id: 'profile', label: 'Profile & KYC', icon: User },
-    { id: 'services', label: 'My Services', icon: Layers },
-    { id: 'jobs', label: 'Freelance Marketplace', icon: Briefcase, isExternal: true },
+    ...(isAdminUser
+      ? [
+          { id: 'services', label: 'My Services', icon: Layers },
+          { id: 'jobs', label: 'Freelance Marketplace', icon: Briefcase, isExternal: true },
+        ]
+      : []),
     { id: 'orders', label: 'My Orders', icon: ShoppingBag },
-    { id: 'tasks', label: 'My Tasks', icon: CheckSquare },
-    { id: 'courses', label: 'My Courses', icon: BookOpen },
-    { id: 'products', label: 'Digital Products', icon: Package, badge: 'NEW' },
     { id: 'affiliate', label: 'Affiliate Center', icon: Share2 },
     { id: 'referral', label: 'Invite & Earn', icon: Users },
     { id: 'wallet', label: 'Wallet & Ledger', icon: Wallet },
@@ -1277,66 +1353,38 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ currentSubpath = '
 
                 {/* Quick-Access Navigation Tabs / Feature Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                  {/* 1. Digital Marketing Services */}
+                  {/* 1. Earn / Micro-Tasks */}
                   <div
-                    id="dash-marketplace-services"
-                    onClick={() => navigate('/services')}
-                    className="group relative p-4 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-cyan-500/60 hover:bg-slate-950 cursor-pointer transition-all duration-200 flex flex-col justify-between"
+                    id="dash-marketplace-earn"
+                    onClick={() => handleSubnav('earn')}
+                    className="group relative p-4 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-amber-500/60 hover:bg-slate-950 cursor-pointer transition-all duration-200 flex flex-col justify-between"
                   >
                     <div>
                       <div className="flex items-center justify-between mb-3">
-                        <div className="w-9 h-9 rounded-lg bg-cyan-950/60 border border-cyan-800/50 text-cyan-400 flex items-center justify-center group-hover:scale-105 group-hover:bg-cyan-900/50 transition-all">
-                          <Layers className="w-4 h-4" />
+                        <div className="w-9 h-9 rounded-lg bg-amber-950/60 border border-amber-800/50 text-amber-400 flex items-center justify-center group-hover:scale-105 group-hover:bg-amber-900/50 transition-all">
+                          <Flame className="w-4 h-4 text-amber-400 animate-pulse" />
                         </div>
-                        <span className="text-[10px] font-medium text-slate-500 group-hover:text-cyan-400 flex items-center gap-0.5 transition-colors">
-                          Explore <ArrowUpRight className="w-3 h-3" />
+                        <span className="text-[10px] font-medium text-amber-400 flex items-center gap-0.5">
+                          HOT <ArrowUpRight className="w-3 h-3" />
                         </span>
                       </div>
-                      <h4 className="text-xs font-bold text-white group-hover:text-cyan-400 transition-colors">
-                        Digital Marketing Services
+                      <h4 className="text-xs font-bold text-white group-hover:text-amber-400 transition-colors">
+                        Earn / Micro-Tasks
                       </h4>
                       <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                        SEO, Social Media, Ad campaigns, Design & verified talent packages.
+                        High-yield offerwalls, Monetag, Adsterra, and fast-crediting microtasks.
                       </p>
                     </div>
                     <div className="mt-3 pt-2.5 border-t border-slate-900 flex items-center justify-between text-[10px]">
-                      <span className="text-slate-500">Service Catalog</span>
-                      <span className="font-semibold text-cyan-400">Hire or Offer →</span>
+                      <span className="text-slate-500">Instant Points</span>
+                      <span className="font-semibold text-amber-400">Start Earning →</span>
                     </div>
                   </div>
 
-                  {/* 2. Freelance Marketplace (Kwork Direct) */}
-                  <div
-                    id="dash-marketplace-jobs"
-                    onClick={() => openKworkAffiliate()}
-                    className="group relative p-4 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-indigo-500/60 hover:bg-slate-950 cursor-pointer transition-all duration-200 flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="w-9 h-9 rounded-lg bg-indigo-950/60 border border-indigo-800/50 text-indigo-400 flex items-center justify-center group-hover:scale-105 group-hover:bg-indigo-900/50 transition-all">
-                          <Briefcase className="w-4 h-4" />
-                        </div>
-                        <span className="text-[10px] font-medium text-slate-500 group-hover:text-indigo-400 flex items-center gap-0.5 transition-colors">
-                          Kwork <ExternalLink className="w-3 h-3" />
-                        </span>
-                      </div>
-                      <h4 className="text-xs font-bold text-white group-hover:text-indigo-400 transition-colors">
-                        Freelance Marketplace
-                      </h4>
-                      <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                        Hire expert freelancers or find client contracts in Design, Marketing & Development on Kwork.
-                      </p>
-                    </div>
-                    <div className="mt-3 pt-2.5 border-t border-slate-900 flex items-center justify-between text-[10px]">
-                      <span className="text-slate-500">Official Partner</span>
-                      <span className="font-semibold text-indigo-400 flex items-center gap-1">Open Kwork <ExternalLink className="w-3 h-3" /></span>
-                    </div>
-                  </div>
-
-                  {/* 3. Verified Paid Microtasks */}
+                  {/* 2. Verified Paid Tasks */}
                   <div
                     id="dash-marketplace-tasks"
-                    onClick={() => navigate('/tasks')}
+                    onClick={() => handleSubnav('tasks')}
                     className="group relative p-4 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-emerald-500/60 hover:bg-slate-950 cursor-pointer transition-all duration-200 flex flex-col justify-between"
                   >
                     <div>
@@ -1349,22 +1397,50 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ currentSubpath = '
                         </span>
                       </div>
                       <h4 className="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors">
-                        Verified Paid Microtasks
+                        Verified Paid Tasks
                       </h4>
                       <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
                         100% verified manual microtasks with escrow review and direct wallet payouts.
                       </p>
                     </div>
                     <div className="mt-3 pt-2.5 border-t border-slate-900 flex items-center justify-between text-[10px]">
-                      <span className="text-slate-500">Micro Earnings</span>
-                      <span className="font-semibold text-emerald-400">Start Tasks →</span>
+                      <span className="text-slate-500">Escrow Protected</span>
+                      <span className="font-semibold text-emerald-400">View Tasks →</span>
+                    </div>
+                  </div>
+
+                  {/* 3. Academy Courses */}
+                  <div
+                    id="dash-marketplace-courses"
+                    onClick={() => handleSubnav('courses')}
+                    className="group relative p-4 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-indigo-500/60 hover:bg-slate-950 cursor-pointer transition-all duration-200 flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-9 h-9 rounded-lg bg-indigo-950/60 border border-indigo-800/50 text-indigo-400 flex items-center justify-center group-hover:scale-105 group-hover:bg-indigo-900/50 transition-all">
+                          <BookOpen className="w-4 h-4" />
+                        </div>
+                        <span className="text-[10px] font-medium text-slate-500 group-hover:text-indigo-400 flex items-center gap-0.5 transition-colors">
+                          Udemy <ArrowUpRight className="w-3 h-3" />
+                        </span>
+                      </div>
+                      <h4 className="text-xs font-bold text-white group-hover:text-indigo-400 transition-colors">
+                        Academy Courses
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                        Accredited skill training in SEO, AI Engineering, Full-Stack Development & Marketing.
+                      </p>
+                    </div>
+                    <div className="mt-3 pt-2.5 border-t border-slate-900 flex items-center justify-between text-[10px]">
+                      <span className="text-slate-500">Certified Skills</span>
+                      <span className="font-semibold text-indigo-400">Learn Now →</span>
                     </div>
                   </div>
 
                   {/* 4. Digital Products & SOPs */}
                   <div
                     id="dash-marketplace-products"
-                    onClick={() => navigate('/products')}
+                    onClick={() => handleSubnav('products')}
                     className="group relative p-4 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-purple-500/60 hover:bg-slate-950 cursor-pointer transition-all duration-200 flex flex-col justify-between"
                   >
                     <div>
@@ -1573,12 +1649,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ currentSubpath = '
                   <h2 className="text-2xl font-bold text-white font-['Space_Grotesk']">My Marketing Services</h2>
                   <p className="text-xs text-slate-400 mt-0.5">Services you offer to clients on Nexvora.</p>
                 </div>
-                <button
-                  onClick={() => setShowNewSrvModal(true)}
-                  className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold flex items-center gap-1.5"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Create Service
-                </button>
+                {isAdminUser && (
+                  <button
+                    onClick={() => setShowNewSrvModal(true)}
+                    className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold flex items-center gap-1.5"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Create Service
+                  </button>
+                )}
               </div>
 
               {myServices.length === 0 ? (
@@ -1839,89 +1917,89 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ currentSubpath = '
               {/* 4 Marketplace Category Hub Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div
-                  onClick={() => handleSubnav('services')}
-                  className="group p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/60 cursor-pointer transition-all flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="w-9 h-9 rounded-lg bg-cyan-950/60 border border-cyan-800/50 text-cyan-400 flex items-center justify-center group-hover:scale-105 transition-all">
-                        <Layers className="w-4 h-4" />
-                      </div>
-                      <span className="text-[10px] font-medium text-slate-500 group-hover:text-cyan-400 flex items-center gap-0.5 transition-colors">
-                        Explore <ArrowUpRight className="w-3 h-3" />
-                      </span>
-                    </div>
-                    <h4 className="text-xs font-bold text-white group-hover:text-cyan-400 transition-colors">
-                      Digital Marketing Services
-                    </h4>
-                    <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                      Photo editing, transparent PNGs, clipping paths, SEO & social marketing.
-                    </p>
-                  </div>
-                </div>
-
-                <div
-                  onClick={() => handleSubnav('products')}
-                  className="group p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-emerald-500/60 cursor-pointer transition-all flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="w-9 h-9 rounded-lg bg-emerald-950/60 border border-emerald-800/50 text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-all">
-                        <Package className="w-4 h-4" />
-                      </div>
-                      <span className="text-[10px] font-medium text-slate-500 group-hover:text-emerald-400 flex items-center gap-0.5 transition-colors">
-                        Instant <ArrowUpRight className="w-3 h-3" />
-                      </span>
-                    </div>
-                    <h4 className="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors">
-                      Digital Products Store
-                    </h4>
-                    <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                      E-books, prompt packs, code kits, and ready-to-use digital assets.
-                    </p>
-                  </div>
-                </div>
-
-                <div
-                  onClick={() => handleSubnav('jobs')}
-                  className="group p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-blue-500/60 cursor-pointer transition-all flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="w-9 h-9 rounded-lg bg-blue-950/60 border border-blue-800/50 text-blue-400 flex items-center justify-center group-hover:scale-105 transition-all">
-                        <Briefcase className="w-4 h-4" />
-                      </div>
-                      <span className="text-[10px] font-medium text-slate-500 group-hover:text-blue-400 flex items-center gap-0.5 transition-colors">
-                        Contracts <ArrowUpRight className="w-3 h-3" />
-                      </span>
-                    </div>
-                    <h4 className="text-xs font-bold text-white group-hover:text-blue-400 transition-colors">
-                      Freelance Marketplace
-                    </h4>
-                    <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                      Browse client contracts, apply for jobs, and submit proposals.
-                    </p>
-                  </div>
-                </div>
-
-                <div
                   onClick={() => handleSubnav('earn')}
                   className="group p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-amber-500/60 cursor-pointer transition-all flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <div className="w-9 h-9 rounded-lg bg-amber-950/60 border border-amber-800/50 text-amber-400 flex items-center justify-center group-hover:scale-105 transition-all">
-                        <Flame className="w-4 h-4" />
+                        <Flame className="w-4 h-4 text-amber-400 animate-pulse" />
                       </div>
-                      <span className="text-[10px] font-medium text-slate-500 group-hover:text-amber-400 flex items-center gap-0.5 transition-colors">
-                        Earn Now <ArrowUpRight className="w-3 h-3" />
+                      <span className="text-[10px] font-medium text-amber-400 flex items-center gap-0.5">
+                        HOT <ArrowUpRight className="w-3 h-3" />
                       </span>
                     </div>
                     <h4 className="text-xs font-bold text-white group-hover:text-amber-400 transition-colors">
-                      Micro-Tasks & Surveys
+                      Earn / Micro-Tasks
                     </h4>
                     <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                      Offerwalls, surveys, app installs, and instant points rewards.
+                      Monetag, Adsterra, TimeWall offerwalls, surveys & quick reward engines.
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  onClick={() => handleSubnav('tasks')}
+                  className="group p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-emerald-500/60 cursor-pointer transition-all flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-9 h-9 rounded-lg bg-emerald-950/60 border border-emerald-800/50 text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-all">
+                        <CheckSquare className="w-4 h-4" />
+                      </div>
+                      <span className="text-[10px] font-medium text-slate-500 group-hover:text-emerald-400 flex items-center gap-0.5 transition-colors">
+                        Verified <ArrowUpRight className="w-3 h-3" />
+                      </span>
+                    </div>
+                    <h4 className="text-xs font-bold text-white group-hover:text-emerald-400 transition-colors">
+                      Verified Paid Tasks
+                    </h4>
+                    <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                      Escrow-backed manual tasks, direct payouts, and verified partner jobs.
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  onClick={() => handleSubnav('courses')}
+                  className="group p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-indigo-500/60 cursor-pointer transition-all flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-9 h-9 rounded-lg bg-indigo-950/60 border border-indigo-800/50 text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-all">
+                        <BookOpen className="w-4 h-4" />
+                      </div>
+                      <span className="text-[10px] font-medium text-slate-500 group-hover:text-indigo-400 flex items-center gap-0.5 transition-colors">
+                        Udemy <ArrowUpRight className="w-3 h-3" />
+                      </span>
+                    </div>
+                    <h4 className="text-xs font-bold text-white group-hover:text-indigo-400 transition-colors">
+                      Academy Courses
+                    </h4>
+                    <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                      Accredited masterclasses in SEO, AI Engineering, Full-Stack & Copywriting.
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  onClick={() => handleSubnav('products')}
+                  className="group p-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-purple-500/60 cursor-pointer transition-all flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="w-9 h-9 rounded-lg bg-purple-950/60 border border-purple-800/50 text-purple-400 flex items-center justify-center group-hover:scale-105 transition-all">
+                        <Package className="w-4 h-4" />
+                      </div>
+                      <span className="text-[10px] font-medium text-slate-500 group-hover:text-purple-400 flex items-center gap-0.5 transition-colors">
+                        Instant <ArrowUpRight className="w-3 h-3" />
+                      </span>
+                    </div>
+                    <h4 className="text-xs font-bold text-white group-hover:text-purple-400 transition-colors">
+                      Digital Products Store
+                    </h4>
+                    <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                      E-books, prompt packs, code kits, and ready-to-use digital assets.
                     </p>
                   </div>
                 </div>
@@ -2382,25 +2460,78 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ currentSubpath = '
               </div>
 
               <div className="space-y-3">
-                <h3 className="text-sm font-bold text-white">Your Tickets</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-white">Your Support Inquiries ({tickets.length})</h3>
+                  <button
+                    type="button"
+                    onClick={loadDashboardData}
+                    className="text-xs text-cyan-400 hover:text-cyan-300 font-medium"
+                  >
+                    Refresh Status
+                  </button>
+                </div>
+
                 {tickets.length === 0 ? (
                   <div className="p-8 rounded-2xl bg-slate-900/40 border border-slate-800 text-center text-xs text-slate-500">
                     No support tickets or disputes filed.
                   </div>
                 ) : (
-                  <div className="divide-y divide-slate-800 bg-slate-900 border border-slate-800 rounded-2xl p-4">
-                    {tickets.map((t) => (
-                      <div key={t.id} className="py-3 flex items-center justify-between text-xs">
-                        <div>
-                          <span className="font-bold text-white">{t.ticketNumber}</span>
-                          <h4 className="font-medium text-slate-300 mt-0.5">{t.subject}</h4>
-                          <span className="text-[10px] text-slate-500">{new Date(t.createdAt).toLocaleDateString()}</span>
+                  <div className="space-y-3">
+                    {tickets.map((t) => {
+                      const hasReply = Boolean(t.adminReply || (t.replies && t.replies.length > 0));
+                      return (
+                        <div key={t.id} className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3 text-xs">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-bold text-cyan-400 bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-800/50">
+                                {t.ticketNumber}
+                              </span>
+                              <span className="font-semibold text-white">{t.subject}</span>
+                            </div>
+                            <span
+                              className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                                t.status === 'resolved'
+                                  ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                                  : t.status === 'replied'
+                                  ? 'bg-purple-950 text-purple-400 border border-purple-800'
+                                  : t.status === 'under_review'
+                                  ? 'bg-blue-950 text-blue-400 border border-blue-800'
+                                  : 'bg-amber-950 text-amber-400 border border-amber-800'
+                              }`}
+                            >
+                              {t.status.replace('_', ' ')}
+                            </span>
+                          </div>
+
+                          <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800/80 text-slate-300">
+                            <p className="text-[10px] text-slate-500 uppercase font-bold tracking-wider mb-1">Your Issue Description:</p>
+                            <p className="whitespace-pre-wrap">{t.description}</p>
+                            <span className="block text-[10px] text-slate-500 mt-2">
+                              Submitted on: {new Date(t.createdAt).toLocaleString()}
+                            </span>
+                          </div>
+
+                          {/* Staff Response Box */}
+                          {hasReply && (
+                            <div className="p-3.5 rounded-xl bg-purple-950/40 border border-purple-800/50 text-purple-200 space-y-1.5">
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold text-purple-300 flex items-center gap-1.5">
+                                  🛡️ Official Staff Response:
+                                </span>
+                                {t.updatedAt && (
+                                  <span className="text-[10px] text-purple-400/80">
+                                    {new Date(t.updatedAt).toLocaleString()}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-slate-200 pl-3 border-l-2 border-purple-500/60 whitespace-pre-wrap">
+                                {t.adminReply || (t.replies && t.replies[t.replies.length - 1]?.message)}
+                              </p>
+                            </div>
+                          )}
                         </div>
-                        <span className="px-2 py-0.5 rounded bg-slate-800 text-cyan-300 uppercase text-[10px] font-bold">
-                          {t.status}
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

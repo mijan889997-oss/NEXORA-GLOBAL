@@ -25,6 +25,7 @@ import type { Service } from '../types';
 import { ServiceCard } from './ServiceCard';
 import { openUdemyAffiliate } from '../config/affiliateLinks';
 import { markTaskAsCompleted } from '../lib/taskLockUtils';
+import { fetchSupabaseMicrotasks, subscribeToMicrotasks, subscribeToSubmissions } from '../lib/supabase';
 
 export interface Task {
   id: string;
@@ -588,6 +589,10 @@ export default function VerifiedMarketplaceView() {
   const [loadingTasks, setLoadingTasks] = useState(true);
   const [loadingSubmissions, setLoadingSubmissions] = useState(false);
 
+  const isAdminUser = Boolean(
+    user && (user.email === 'admin@nexvora.global' || user.role === 'SUPER ADMIN' || user.role === 'ADMIN')
+  );
+
   const loadServices = async () => {
     try {
       const res = await apiFetch('/api/services');
@@ -640,86 +645,137 @@ export default function VerifiedMarketplaceView() {
   const loadTasks = async () => {
     try {
       setLoadingTasks(true);
-      // 1. Fetch from server API
+
+      // Clean up any legacy demo tasks from localStorage
+      try {
+        const rawLocal = localStorage.getItem('nexvora_custom_tasks');
+        if (rawLocal) {
+          const parsed = JSON.parse(rawLocal);
+          if (Array.isArray(parsed)) {
+            const filtered = parsed.filter(
+              (t: any) =>
+                t &&
+                t.id !== 'TASK-101' &&
+                t.id !== 'TASK-102' &&
+                !t.title?.includes('Sign up and verify profile on partner website') &&
+                !t.title?.includes('App feedback & UI bug testing')
+            );
+            if (filtered.length !== parsed.length) {
+              localStorage.setItem('nexvora_custom_tasks', JSON.stringify(filtered));
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('LocalStorage task cleanup notice:', err);
+      }
+
+      // 1. Fetch from Supabase database
+      let supabaseTasks: Task[] = [];
+      try {
+        const sbData = await fetchSupabaseMicrotasks();
+        if (Array.isArray(sbData)) {
+          supabaseTasks = sbData
+            .filter(
+              (t: any) =>
+                t &&
+                t.id !== 'TASK-101' &&
+                t.id !== 'TASK-102' &&
+                !t.title?.includes('Sign up and verify profile on partner website') &&
+                !t.title?.includes('App feedback & UI bug testing')
+            )
+            .map((t: any) => ({
+              id: t.id,
+              title: t.title,
+              category: t.category || 'Microtask',
+              reward: t.rewardAmount !== undefined ? t.rewardAmount : (t.rewardCoins ? t.rewardCoins / 1000 : 0.25),
+              rewardAmount: t.rewardAmount,
+              rewardCoins: t.rewardCoins,
+              spotsLeft: t.slotsRemaining !== undefined ? t.slotsRemaining : (t.spotsLeft !== undefined ? t.spotsLeft : 50),
+              totalSlots: t.totalSlots || 100,
+              employer: t.employer || 'Nexora Verified',
+              targetUrl: t.targetUrl,
+              description: t.description,
+              instructions: Array.isArray(t.instructions) ? t.instructions.join('\n') : (t.instructions || t.description),
+              proofRequirements: t.proofRequirements,
+              status: t.status,
+            }));
+        }
+      } catch (err) {
+        console.warn('[Supabase] Could not fetch tasks:', err);
+      }
+
+      // 2. Fetch from server API
       let serverTasks: Task[] = [];
       try {
         const res = await apiFetch('/api/tasks');
         if (res && Array.isArray(res.tasks)) {
-          serverTasks = res.tasks.map((t: any) => ({
-            id: t.id,
-            title: t.title,
-            category: t.category || 'Microtask',
-            reward: t.rewardAmount !== undefined ? t.rewardAmount : (t.rewardCoins ? t.rewardCoins / 1000 : 0.25),
-            rewardAmount: t.rewardAmount,
-            rewardCoins: t.rewardCoins,
-            spotsLeft: t.slotsRemaining !== undefined ? t.slotsRemaining : (t.totalSlots || 50),
-            totalSlots: t.totalSlots || 100,
-            employer: t.employer || 'Nexora Verified',
-            targetUrl: t.targetUrl,
-            description: t.description,
-            instructions: Array.isArray(t.instructions) ? t.instructions.join('\n') : (t.instructions || t.description),
-            proofRequirements: t.proofRequirements,
-          }));
+          serverTasks = res.tasks
+            .filter(
+              (t: any) =>
+                t &&
+                t.id !== 'TASK-101' &&
+                t.id !== 'TASK-102' &&
+                !t.title?.includes('Sign up and verify profile on partner website') &&
+                !t.title?.includes('App feedback & UI bug testing')
+            )
+            .map((t: any) => ({
+              id: t.id,
+              title: t.title,
+              category: t.category || 'Microtask',
+              reward: t.rewardAmount !== undefined ? t.rewardAmount : (t.rewardCoins ? t.rewardCoins / 1000 : 0.25),
+              rewardAmount: t.rewardAmount,
+              rewardCoins: t.rewardCoins,
+              spotsLeft: t.slotsRemaining !== undefined ? t.slotsRemaining : (t.totalSlots || 50),
+              totalSlots: t.totalSlots || 100,
+              employer: t.employer || 'Nexora Verified',
+              targetUrl: t.targetUrl,
+              description: t.description,
+              instructions: Array.isArray(t.instructions) ? t.instructions.join('\n') : (t.instructions || t.description),
+              proofRequirements: t.proofRequirements,
+              status: t.status,
+            }));
         }
       } catch (err) {
-        console.warn('Could not fetch server tasks, checking local storage:', err);
+        console.warn('Could not fetch server tasks:', err);
       }
 
-      // 2. Read from localStorage custom tasks
+      // 3. Read from localStorage custom tasks (Admin created tasks)
       let localTasks: Task[] = [];
       try {
         const raw = localStorage.getItem('nexvora_custom_tasks');
         if (raw) {
           const parsed = JSON.parse(raw);
           if (Array.isArray(parsed)) {
-            localTasks = parsed.map((t: any) => ({
-              id: t.id,
-              title: t.title,
-              category: t.category || 'Microtask',
-              reward: t.rewardAmount !== undefined ? t.rewardAmount : (t.reward !== undefined ? t.reward : (t.rewardCoins ? t.rewardCoins / 1000 : 0.25)),
-              rewardAmount: t.rewardAmount || t.reward,
-              rewardCoins: t.rewardCoins,
-              spotsLeft: t.spotsLeft !== undefined ? t.spotsLeft : (t.slotsRemaining !== undefined ? t.slotsRemaining : 50),
-              totalSlots: t.totalSlots || 100,
-              employer: t.employer || 'Admin Verified',
-              targetUrl: t.targetUrl,
-              description: t.description,
-              instructions: Array.isArray(t.instructions) ? t.instructions.join('\n') : (t.instructions || t.description),
-              proofRequirements: t.proofRequirements,
-            }));
+            localTasks = parsed
+              .filter(
+                (t: any) =>
+                  t &&
+                  t.id !== 'TASK-101' &&
+                  t.id !== 'TASK-102' &&
+                  !t.title?.includes('Sign up and verify profile on partner website') &&
+                  !t.title?.includes('App feedback & UI bug testing')
+              )
+              .map((t: any) => ({
+                id: t.id,
+                title: t.title,
+                category: t.category || 'Microtask',
+                reward: t.rewardAmount !== undefined ? t.rewardAmount : (t.reward !== undefined ? t.reward : (t.rewardCoins ? t.rewardCoins / 1000 : 0.25)),
+                rewardAmount: t.rewardAmount || t.reward,
+                rewardCoins: t.rewardCoins,
+                spotsLeft: t.spotsLeft !== undefined ? t.spotsLeft : (t.slotsRemaining !== undefined ? t.slotsRemaining : 50),
+                totalSlots: t.totalSlots || 100,
+                employer: t.employer || 'Admin Verified',
+                targetUrl: t.targetUrl,
+                description: t.description,
+                instructions: Array.isArray(t.instructions) ? t.instructions.join('\n') : (t.instructions || t.description),
+                proofRequirements: t.proofRequirements,
+                status: t.status,
+              }));
           }
         }
       } catch (err) {
         console.warn('Could not parse localStorage tasks:', err);
       }
-
-      // Baseline verified tasks
-      const baselineTasks: Task[] = [
-        {
-          id: 'TASK-101',
-          title: 'Sign up and verify profile on partner website',
-          category: 'Microtask',
-          reward: 0.25,
-          spotsLeft: 14,
-          employer: 'Nexora Verified',
-          targetUrl: 'https://nexvora.global',
-          description: 'Register a free account on the verified partner portal, confirm email address, and submit profile link or username.',
-          instructions: 'Complete partner registration and enter your account username or verification code below.',
-          proofRequirements: 'Submit your registered email / username and a full screenshot of the confirmed profile dashboard.',
-        },
-        {
-          id: 'TASK-102',
-          title: 'App feedback & UI bug testing',
-          category: 'Quality Assurance',
-          reward: 1.50,
-          spotsLeft: 5,
-          employer: 'TechHub Ltd',
-          targetUrl: 'https://nexvora.global',
-          description: 'Test platform responsiveness across mobile and desktop viewports, documenting any UI glitches, broken links, or speed issues.',
-          instructions: 'Test mobile and desktop responsiveness, write 2–3 sentences of actionable feedback or bug notes.',
-          proofRequirements: 'Submit written feedback notes and screenshot proof of the device screen tested.',
-        },
-      ];
 
       // Retrieve blacklist of deleted tasks and status overrides
       let deletedIds: string[] = [];
@@ -742,9 +798,9 @@ export default function VerifiedMarketplaceView() {
         return true;
       };
 
-      // Merge: local tasks take priority, then server tasks, then baseline
+      // Merge: Supabase, Server, and Local Admin tasks
       const mergedMap = new Map<string, Task>();
-      baselineTasks.filter(isValidActiveTask).forEach((t) => mergedMap.set(t.id, t));
+      supabaseTasks.filter(isValidActiveTask).forEach((t) => mergedMap.set(t.id, t));
       serverTasks.filter(isValidActiveTask).forEach((t) => mergedMap.set(t.id, t));
       localTasks.filter(isValidActiveTask).forEach((t) => mergedMap.set(t.id, t));
 
@@ -781,10 +837,23 @@ export default function VerifiedMarketplaceView() {
     window.addEventListener('tasks_updated', handleUpdate);
     window.addEventListener('submissions_updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
+
+    // Supabase real-time subscriptions for instant live task syncing
+    const unsubMicro = subscribeToMicrotasks(() => {
+      console.log('[Supabase Realtime] Microtasks table changed. Syncing UI...');
+      loadTasks();
+    });
+    const unsubSubs = subscribeToSubmissions(() => {
+      console.log('[Supabase Realtime] Submissions table changed. Syncing UI...');
+      loadMySubmissions();
+    });
+
     return () => {
       window.removeEventListener('tasks_updated', handleUpdate);
       window.removeEventListener('submissions_updated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
+      if (typeof unsubMicro === 'function') unsubMicro();
+      if (typeof unsubSubs === 'function') unsubSubs();
     };
   }, [user]);
 
@@ -845,26 +914,30 @@ export default function VerifiedMarketplaceView() {
         >
           <Clock className="w-4 h-4" /> My Submissions ({mySubmissions.length})
         </button>
-        <button 
-          onClick={() => setActiveTab('services')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer whitespace-nowrap ${
-            activeTab === 'services' 
-              ? 'bg-gradient-to-r from-cyan-600 to-teal-600 text-white shadow-lg shadow-cyan-950/50' 
-              : 'bg-slate-900 text-slate-400 hover:bg-slate-800 border border-slate-800'
-          }`}
-        >
-          <Layers className="w-4 h-4" /> Marketing Services ({services.length > 0 ? services.length : 1})
-        </button>
-        <button 
-          onClick={() => setActiveTab('jobs')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer whitespace-nowrap ${
-            activeTab === 'jobs' 
-              ? 'bg-gradient-to-r from-cyan-600 to-teal-600 text-white shadow-lg shadow-cyan-950/50' 
-              : 'bg-slate-900 text-slate-400 hover:bg-slate-800 border border-slate-800'
-          }`}
-        >
-          <Briefcase className="w-4 h-4" /> Freelance Jobs (0)
-        </button>
+        {isAdminUser && (
+          <>
+            <button 
+              onClick={() => setActiveTab('services')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer whitespace-nowrap ${
+                activeTab === 'services' 
+                  ? 'bg-gradient-to-r from-cyan-600 to-teal-600 text-white shadow-lg shadow-cyan-950/50' 
+                  : 'bg-slate-900 text-slate-400 hover:bg-slate-800 border border-slate-800'
+              }`}
+            >
+              <Layers className="w-4 h-4" /> Marketing Services ({services.length > 0 ? services.length : 1})
+            </button>
+            <button 
+              onClick={() => setActiveTab('jobs')}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer whitespace-nowrap ${
+                activeTab === 'jobs' 
+                  ? 'bg-gradient-to-r from-cyan-600 to-teal-600 text-white shadow-lg shadow-cyan-950/50' 
+                  : 'bg-slate-900 text-slate-400 hover:bg-slate-800 border border-slate-800'
+              }`}
+            >
+              <Briefcase className="w-4 h-4" /> Freelance Jobs (0)
+            </button>
+          </>
+        )}
         <button 
           onClick={() => {
             openUdemyAffiliate();
@@ -897,7 +970,12 @@ export default function VerifiedMarketplaceView() {
             </span>
           </div>
 
-          {tasks.length > 0 ? (
+          {loadingTasks ? (
+            <div className="bg-slate-900/50 border border-slate-800 p-12 rounded-2xl text-center space-y-3">
+              <RefreshCw className="w-8 h-8 text-cyan-400 animate-spin mx-auto" />
+              <p className="text-sm font-semibold text-slate-300">Loading verified tasks from database...</p>
+            </div>
+          ) : tasks.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {tasks.map((task) => {
                 const isSubmitted = submittedTasks[task.id];
@@ -996,10 +1074,12 @@ export default function VerifiedMarketplaceView() {
               })}
             </div>
           ) : (
-            <div className="bg-slate-900/50 border border-slate-800 p-8 rounded-2xl text-center space-y-2">
-              <AlertCircle className="w-8 h-8 text-slate-500 mx-auto" />
-              <p className="text-sm font-semibold text-slate-300">No active tasks available right now</p>
-              <p className="text-xs text-slate-500">New verified tasks are posted on an ongoing basis by platform admins and employers.</p>
+            <div className="bg-slate-900/50 border border-slate-800 p-12 rounded-2xl text-center space-y-3">
+              <AlertCircle className="w-10 h-10 text-slate-500 mx-auto" />
+              <h3 className="text-base font-bold text-white font-['Space_Grotesk']">No tasks available right now</h3>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                There are currently no tasks available. When an administrator adds tasks from the Admin Panel, they will appear here in real-time.
+              </p>
             </div>
           )}
         </div>

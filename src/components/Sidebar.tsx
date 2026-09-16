@@ -143,14 +143,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath = '/dashboard/earn
 
         {/* ================= SPECIAL EARNING SERVICES ================= */}
         <div className="pt-3 pb-1 px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-          Earn & Marketplace
+          Earn & Growth
         </div>
 
-        {/* 1. Internal Earn / Micro-Tasks (Adsterra & Monetag) */}
+        {/* 1. Internal Earn / Micro-Tasks */}
         <button
           onClick={() => handleNav('/dashboard/earn')}
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-xs font-semibold ${
-            currentPath === '/dashboard/earn'
+            currentPath === '/dashboard/earn' || currentPath === '/earn'
               ? 'bg-amber-500/10 text-amber-300 border border-amber-500/30 font-bold'
               : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
           }`}
@@ -162,19 +162,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPath = '/dashboard/earn
           </span>
         </button>
 
-        {/* 2. Freelance Marketplace (Kwork Referral) */}
-        <a
-          href="https://kwork.com/ref/25226052"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-3 px-3 py-2 text-slate-300 hover:text-white hover:bg-slate-800/60 rounded-xl transition-all text-xs font-semibold group"
-        >
-          <Briefcase className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition-transform" />
-          <span>Freelance Marketplace</span>
-          <ExternalLink className="w-3.5 h-3.5 ml-auto opacity-50 group-hover:opacity-100" />
-        </a>
-
-        {/* 3. Verified Paid Tasks (Freecash Direct Partner) */}
+        {/* 2. Verified Paid Tasks (Freecash Direct Partner) */}
         <a
           href="https://freecash.com/r/7GHGR"
           target="_blank"

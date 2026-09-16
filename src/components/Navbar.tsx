@@ -76,26 +76,20 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate }) => {
           {/* Desktop Nav Links */}
           <nav className="hidden md:flex items-center gap-1 lg:gap-2 text-sm font-medium text-slate-300">
             <button
-              id="nav-services"
-              onClick={() => handleNav('/services')}
+              id="nav-earn"
+              onClick={() => handleNav('/dashboard/earn')}
               className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 ${
-                currentPath === '/services' ? 'text-cyan-400 bg-slate-900' : 'hover:text-white hover:bg-slate-900/60'
+                currentPath === '/earn' || currentPath === '/dashboard/earn'
+                  ? 'text-amber-400 bg-slate-900'
+                  : 'hover:text-white hover:bg-slate-900/60'
               }`}
             >
-              <Layers className="w-4 h-4 text-cyan-400" />
-              Services
+              <Flame className="w-4 h-4 text-amber-400 animate-pulse" />
+              <span>Earn / Micro-Tasks</span>
+              <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                HOT
+              </span>
             </button>
-            <a
-              id="nav-jobs"
-              href={KWORK_AFFILIATE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-slate-900/60"
-            >
-              <Briefcase className="w-4 h-4 text-indigo-400" />
-              <span>Freelance</span>
-              <ExternalLink className="w-3 h-3 opacity-60 text-slate-400" />
-            </a>
             <a
               id="nav-tasks"
               href={FREECASH_AFFILIATE_URL}
@@ -104,24 +98,9 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate }) => {
               className="px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-slate-900/60"
             >
               <CheckSquare className="w-4 h-4 text-emerald-400" />
-              <span>Verified Tasks</span>
+              <span>Verified Paid Tasks</span>
               <ExternalLink className="w-3 h-3 opacity-60 text-slate-400" />
             </a>
-            <button
-              id="nav-earn"
-              onClick={() => handleNav('/earn')}
-              className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 ${
-                currentPath === '/earn' || currentPath === '/dashboard/earn'
-                  ? 'text-amber-400 bg-slate-900'
-                  : 'hover:text-white hover:bg-slate-900/60'
-              }`}
-            >
-              <Flame className="w-4 h-4 text-amber-400 animate-pulse" />
-              <span>Earn</span>
-              <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                HOT
-              </span>
-            </button>
             <button
               id="nav-courses"
               onClick={() => handleNav('/courses')}
@@ -130,7 +109,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate }) => {
               }`}
             >
               <BookOpen className="w-4 h-4 text-amber-400" />
-              Academy
+              <span>Academy Courses</span>
             </button>
             <button
               id="nav-products"
@@ -140,7 +119,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate }) => {
               }`}
             >
               <Package className="w-4 h-4 text-purple-400" />
-              Products
+              <span>Products</span>
             </button>
             <button
               id="nav-compliance"
@@ -183,11 +162,11 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate }) => {
                 {/* Dashboard button */}
                 <button
                   id="nav-goto-dashboard"
-                  onClick={() => handleNav('/dashboard')}
+                  onClick={() => handleNav('/dashboard/earn')}
                   className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white flex items-center gap-1.5 shadow-sm transition-colors"
                 >
                   <LayoutDashboard className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">User</span> Dashboard
+                  <span className="hidden sm:inline">Earn</span> Dashboard
                 </button>
 
                 {isAdmin && (
@@ -300,63 +279,43 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate }) => {
       {mobileMenuOpen && (
         <div className="md:hidden border-b border-slate-800 bg-slate-950 px-4 pt-2 pb-6 space-y-2">
           <button
-            onClick={() => handleNav('/services')}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-slate-300 hover:bg-slate-900"
-          >
-            <Layers className="w-4 h-4 text-cyan-400" />
-            Digital Marketing Services
-          </button>
-          <a
-            href={KWORK_AFFILIATE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => setMobileMenuOpen(false)}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-slate-300 hover:bg-slate-900"
+            onClick={() => handleNav('/dashboard/earn')}
+            className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left text-amber-300 bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20"
           >
             <span className="flex items-center gap-3">
-              <Briefcase className="w-4 h-4 text-indigo-400" />
-              Freelance Marketplace
+              <Flame className="w-4 h-4 text-amber-400 animate-pulse" />
+              <span className="font-semibold text-xs">Earn / Micro-Tasks</span>
             </span>
-            <ExternalLink className="w-3.5 h-3.5 opacity-60 text-slate-400" />
-          </a>
+            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/30 text-amber-300">
+              HOT
+            </span>
+          </button>
           <a
             href={FREECASH_AFFILIATE_URL}
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setMobileMenuOpen(false)}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-slate-300 hover:bg-slate-900"
+            className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-900"
           >
             <span className="flex items-center gap-3">
               <CheckSquare className="w-4 h-4 text-emerald-400" />
-              Verified Paid Tasks
+              <span className="font-medium text-xs">Verified Paid Tasks</span>
             </span>
             <ExternalLink className="w-3.5 h-3.5 opacity-60 text-slate-400" />
           </a>
           <button
-            onClick={() => handleNav('/earn')}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-amber-300 bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20"
-          >
-            <span className="flex items-center gap-3">
-              <Flame className="w-4 h-4 text-amber-400 animate-pulse" />
-              <span>Earn / Micro-Tasks</span>
-            </span>
-            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/30 text-amber-300">
-              TIMEWALL
-            </span>
-          </button>
-          <button
             onClick={() => handleNav('/courses')}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-slate-300 hover:bg-slate-900"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-900"
           >
             <BookOpen className="w-4 h-4 text-amber-400" />
-            Academy Courses
+            <span className="font-medium text-xs">Academy Courses</span>
           </button>
           <button
             onClick={() => handleNav('/products')}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left text-slate-300 hover:bg-slate-900"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-900"
           >
             <Package className="w-4 h-4 text-purple-400" />
-            Digital Products
+            <span className="font-medium text-xs">Digital Products</span>
           </button>
           <div className="border-t border-slate-800 pt-2 space-y-1">
             <button

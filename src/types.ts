@@ -555,16 +555,28 @@ export interface Review {
   createdAt: string;
 }
 
+export interface TicketReply {
+  id: string;
+  senderName: string;
+  senderRole: 'admin' | 'user';
+  message: string;
+  createdAt: string;
+}
+
 export interface Dispute {
   id: string;
   ticketNumber: string;
   orderId?: string;
   raisedById: string;
+  userName?: string;
+  userEmail?: string;
   againstUserId?: string;
   subject: string;
   description: string;
-  category: 'order_issue' | 'payment' | 'account' | 'task_submission' | 'other';
-  status: 'open' | 'under_review' | 'resolved' | 'closed';
+  category: 'order_issue' | 'payment' | 'account' | 'task_submission' | 'other' | string;
+  status: 'open' | 'under_review' | 'replied' | 'resolved' | 'closed';
+  adminReply?: string;
+  replies?: TicketReply[];
   resolutionNotes?: string;
   assignedAdminId?: string;
   createdAt: string;

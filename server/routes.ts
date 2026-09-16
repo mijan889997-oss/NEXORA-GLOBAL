@@ -3906,30 +3906,48 @@ apiRouter.post('/messages', authenticateToken, async (req: AuthRequest, res: Res
   res.status(201).json({ message: msg });
 });
 
-apiRouter.get('/support/tickets', authenticateToken, (req: AuthRequest, res: Response): void => {
-  const tickets = db.getTable('disputes').filter((d) => d.raisedById === req.user!.id);
-  res.json({ tickets });
+apiRouter.get('/support/tickets', optionalAuthenticateToken, (req: AuthRequest, res: Response): void => {
+  if (req.user) {
+    const tickets = db.getTable('disputes').filter((d) => d.raisedById === req.user!.id || d.userEmail === req.user!.email);
+    res.json({ tickets });
+  } else {
+    res.json({ tickets: [] });
+  }
 });
 
-apiRouter.post('/support/tickets', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
-  const { subject, description, category } = req.body;
+apiRouter.post('/support/tickets', optionalAuthenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  const { subject, description, category, userName, email } = req.body;
   if (!subject || !description) {
     res.status(400).json({ error: 'Subject and description are required.' });
     return;
   }
+
+  const submitterName = (req.user?.fullName || userName || 'Valued User').trim();
+  const submitterEmail = (req.user?.email || email || '').trim();
+
   const ticket: Dispute = {
-    id: `ticket_${Date.now()}`,
+    id: `ticket_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
     ticketNumber: `TKT-${Math.floor(100000 + Math.random() * 900000)}`,
-    raisedById: req.user!.id,
-    subject,
-    description,
+    raisedById: req.user ? req.user.id : `guest_${Date.now()}`,
+    userName: submitterName,
+    userEmail: submitterEmail,
+    subject: String(subject).trim(),
+    description: String(description).trim(),
     category: category || 'account',
     status: 'open',
+    replies: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
+
   db.insert(db.getTable('disputes'), ticket);
-  res.status(201).json({ ticket });
+  await db.persist();
+
+  if (req.user) {
+    await db.logAudit(req.user.id, req.user.email, 'SUPPORT_TICKET_CREATED', 'disputes', ticket.id, `Created support ticket: ${ticket.ticketNumber}`);
+  }
+
+  res.status(201).json({ success: true, ticket });
 });
 
 // ==========================================
@@ -5186,33 +5204,113 @@ apiRouter.post('/admin/wallets/adjust', authenticateToken, requireRole(['SUPER A
 });
 
 // Admin Disputes & Support Management
-apiRouter.get('/admin/disputes', authenticateToken, requireRole(['SUPER ADMIN', 'ADMIN', 'SUPPORT ADMIN', 'MODERATOR']), (req: AuthRequest, res: Response): void => {
+apiRouter.get(['/admin/disputes', '/admin/support-tickets'], authenticateToken, requireRole(['SUPER ADMIN', 'ADMIN', 'SUPPORT ADMIN', 'MODERATOR']), (req: AuthRequest, res: Response): void => {
   const disputes = db.getTable('disputes');
   const users = db.getTable('users');
-  const enriched = disputes.map((d) => {
-    const user = users.find((u) => u.id === d.raisedById);
-    return {
-      ...d,
-      userName: user?.fullName || 'User',
-      userEmail: user?.email || '',
-    };
-  });
-  res.json({ disputes: enriched });
+  const enriched = disputes
+    .map((d) => {
+      const user = users.find((u) => u.id === d.raisedById || (d.userEmail && u.email.toLowerCase() === d.userEmail.toLowerCase()));
+      return {
+        ...d,
+        userName: d.userName || user?.fullName || 'User',
+        userEmail: d.userEmail || user?.email || '',
+      };
+    })
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  res.json({ disputes: enriched, tickets: enriched });
 });
 
-apiRouter.put('/admin/disputes/:id/status', authenticateToken, requireRole(['SUPER ADMIN', 'ADMIN', 'SUPPORT ADMIN', 'MODERATOR']), async (req: AuthRequest, res: Response): Promise<void> => {
-  const { status, resolutionNotes } = req.body;
+// Admin Reply & Resolve Support Ticket
+apiRouter.put(['/admin/disputes/:id/reply', '/admin/support-tickets/:id/reply'], authenticateToken, requireRole(['SUPER ADMIN', 'ADMIN', 'SUPPORT ADMIN', 'MODERATOR']), async (req: AuthRequest, res: Response): Promise<void> => {
+  const { replyMessage, status = 'replied', resolutionNotes } = req.body;
+  const dispute = db.findById(db.getTable('disputes'), req.params.id);
+  if (!dispute) {
+    res.status(404).json({ error: 'Support ticket not found.' });
+    return;
+  }
+
+  const now = new Date().toISOString();
+  if (replyMessage && typeof replyMessage === 'string' && replyMessage.trim()) {
+    const trimmedReply = replyMessage.trim();
+    dispute.adminReply = trimmedReply;
+    if (!dispute.replies) dispute.replies = [];
+    dispute.replies.push({
+      id: `rep_${Date.now()}`,
+      senderName: req.user!.fullName || 'Support Staff',
+      senderRole: 'admin',
+      message: trimmedReply,
+      createdAt: now,
+    });
+  }
+
+  if (status) {
+    dispute.status = status;
+  }
+  if (resolutionNotes) {
+    dispute.resolutionNotes = resolutionNotes;
+  }
+  dispute.assignedAdminId = req.user!.id;
+  dispute.updatedAt = now;
+
+  await db.persist();
+
+  // If user is a registered member, dispatch in-app notification
+  if (dispute.raisedById && !dispute.raisedById.startsWith('guest_')) {
+    const notifs = db.getTable('notifications');
+    db.insert(notifs, {
+      id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      userId: dispute.raisedById,
+      title: `Support Ticket ${dispute.ticketNumber} Update`,
+      message: `Support team has ${status === 'resolved' ? 'resolved' : 'replied to'} your inquiry: "${dispute.subject}".`,
+      type: 'system',
+      read: false,
+      createdAt: now,
+    });
+    await db.persist();
+  }
+
+  await db.logAudit(
+    req.user!.id,
+    req.user!.email,
+    'SUPPORT_TICKET_REPLIED',
+    'disputes',
+    dispute.id,
+    `Replied to ${dispute.ticketNumber}. New status: ${dispute.status}`
+  );
+
+  res.json({ success: true, dispute, ticket: dispute, message: 'Ticket updated successfully.' });
+});
+
+apiRouter.put(['/admin/disputes/:id/status', '/admin/support-tickets/:id/status'], authenticateToken, requireRole(['SUPER ADMIN', 'ADMIN', 'SUPPORT ADMIN', 'MODERATOR']), async (req: AuthRequest, res: Response): Promise<void> => {
+  const { status, resolutionNotes, adminReply } = req.body;
   const dispute = db.findById(db.getTable('disputes'), req.params.id);
   if (!dispute) {
     res.status(404).json({ error: 'Dispute ticket not found.' });
     return;
   }
   dispute.status = status;
-  if (resolutionNotes) dispute.description += `\n[Resolution Note]: ${resolutionNotes}`;
+  if (adminReply) dispute.adminReply = adminReply;
+  if (resolutionNotes) dispute.resolutionNotes = resolutionNotes;
   dispute.updatedAt = new Date().toISOString();
+  dispute.assignedAdminId = req.user!.id;
   await db.persist();
   await db.logAudit(req.user!.id, req.user!.email, 'DISPUTE_STATUS_CHANGE', 'disputes', dispute.id, `Status set to ${status}`);
-  res.json({ success: true, dispute });
+  res.json({ success: true, dispute, ticket: dispute });
+});
+
+// Admin Delete / Archive Support Ticket
+apiRouter.delete(['/admin/disputes/:id', '/admin/support-tickets/:id'], authenticateToken, requireRole(['SUPER ADMIN', 'ADMIN']), async (req: AuthRequest, res: Response): Promise<void> => {
+  const disputes = db.getTable('disputes');
+  const index = disputes.findIndex((d) => d.id === req.params.id);
+  if (index === -1) {
+    res.status(404).json({ error: 'Ticket not found' });
+    return;
+  }
+  const [removed] = disputes.splice(index, 1);
+  await db.persist();
+  await db.logAudit(req.user!.id, req.user!.email, 'SUPPORT_TICKET_DELETED', 'disputes', removed.id, `Deleted ticket: ${removed.ticketNumber}`);
+  res.json({ success: true, message: 'Ticket deleted successfully.' });
 });
 
 // Admin Broadcast Notification

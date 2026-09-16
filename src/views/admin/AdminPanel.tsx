@@ -37,9 +37,12 @@ import {
   Image as ImageIcon,
   ZoomIn,
   Download,
+  HelpCircle,
+  MessageSquare,
 } from 'lucide-react';
 import { AdminRewardSettings } from '../../components/AdminRewardSettings';
 import { AdminVideoTaskSettings } from '../../components/AdminVideoTaskSettings';
+import { AdminSupportTickets } from '../../components/AdminSupportTickets';
 import {
   fetchSupabaseMicrotasks,
   insertSupabaseMicrotask,
@@ -60,6 +63,7 @@ import type {
   PaymentGatewayConfig,
   PlatformStats,
   SystemLog,
+  Dispute,
 } from '../../types';
 
 interface AdminPanelProps {
@@ -85,6 +89,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
     | 'users'
     | 'tasks'
     | 'task_reviews'
+    | 'support'
     | 'services'
     | 'jobs'
     | 'products'
@@ -104,6 +109,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
   const [tasksList, setTasksList] = useState<Task[]>([]);
   const [taskSubmissions, setTaskSubmissions] = useState<TaskSubmission[]>([]);
   const [withdrawalsList, setWithdrawalsList] = useState<Withdrawal[]>([]);
+  const [supportTickets, setSupportTickets] = useState<Dispute[]>([]);
   const [gateways, setGateways] = useState<PaymentGatewayConfig[]>([]);
   const [gatewaySpecs, setGatewaySpecs] = useState<any[]>([]);
   const [logs, setLogs] = useState<SystemLog[]>([]);
@@ -193,7 +199,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
     if (!isAuthorized) return;
     setLoading(true);
     try {
-      const [ov, us, tk, wd, gw, lg, ky, ts, gws, srv, jb, prd, tka, sbTasks, sbSubs] = await Promise.all([
+      const [ov, us, tk, wd, gw, lg, ky, ts, gws, srv, jb, prd, tka, sbTasks, sbSubs, dspRes] = await Promise.all([
         apiFetch('/api/admin/overview'),
         apiFetch('/api/admin/users'),
         apiFetch('/api/admin/tasks'),
@@ -209,6 +215,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
         apiFetch('/api/admin/tasks/analytics').catch(() => ({ analytics: null })),
         fetchSupabaseMicrotasks().catch(() => []),
         fetchSupabaseSubmissions().catch(() => []),
+        apiFetch('/api/admin/disputes').catch(() => apiFetch('/api/admin/support-tickets')).catch(() => ({ disputes: [] })),
       ]);
 
       if (tka?.analytics) {
@@ -221,7 +228,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
       const loadedServices = srv?.services || [];
       const loadedJobs = jb?.jobs || [];
       const loadedProducts = prd?.products || [];
+      const loadedDisputes: Dispute[] = dspRes?.disputes || dspRes?.tickets || [];
 
+      // Merge backend tickets and localStorage tickets
+      let mergedTickets = [...loadedDisputes];
+      const existingTicketIds = new Set(mergedTickets.map((t) => t.id || t.ticketNumber));
+
+      try {
+        const rawTickets = localStorage.getItem('nexvora_support_tickets');
+        if (rawTickets) {
+          const parsedTickets: Dispute[] = JSON.parse(rawTickets);
+          if (Array.isArray(parsedTickets)) {
+            // Update existing or append new
+            const localMap = new Map(parsedTickets.map((t) => [t.id, t]));
+            mergedTickets = mergedTickets.map((t) => {
+              const match = localMap.get(t.id);
+              return match ? { ...t, ...match } : t;
+            });
+
+            for (const lt of parsedTickets) {
+              if (!existingTicketIds.has(lt.id) && !existingTicketIds.has(lt.ticketNumber)) {
+                mergedTickets.unshift(lt);
+                existingTicketIds.add(lt.id);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('localStorage support tickets parse warning:', e);
+      }
+
+      setSupportTickets(mergedTickets);
       setServicesList(loadedServices);
       setJobsList(loadedJobs);
       setProductsList(loadedProducts);
@@ -241,7 +278,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
       } catch {}
 
       // Merge backend tasks, Supabase tasks, and localStorage custom tasks
-      let mergedTasks = [...loadedTasks].filter((t: any) => !deletedIds.includes(t.id));
+      let mergedTasks = [...loadedTasks].filter(
+        (t: any) =>
+          t &&
+          !deletedIds.includes(t.id) &&
+          t.id !== 'TASK-101' &&
+          t.id !== 'TASK-102' &&
+          !t.title?.includes('Sign up and verify profile on partner website') &&
+          !t.title?.includes('App feedback & UI bug testing')
+      );
       const existingTaskIds = new Set(mergedTasks.map((t: any) => t.id));
 
       // 1. Merge Supabase microtasks
@@ -264,7 +309,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
           const parsed = JSON.parse(rawLocal);
           if (Array.isArray(parsed)) {
             for (const lt of parsed) {
-              if (!existingTaskIds.has(lt.id) && !deletedIds.includes(lt.id)) {
+              if (
+                !existingTaskIds.has(lt.id) &&
+                !deletedIds.includes(lt.id) &&
+                lt.id !== 'TASK-101' &&
+                lt.id !== 'TASK-102' &&
+                !lt.title?.includes('Sign up and verify profile on partner website') &&
+                !lt.title?.includes('App feedback & UI bug testing')
+              ) {
                 mergedTasks.unshift(lt);
                 existingTaskIds.add(lt.id);
               }
@@ -361,6 +413,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
     const handleSync = () => fetchAdminData();
     window.addEventListener('tasks_updated', handleSync);
     window.addEventListener('submissions_updated', handleSync);
+    window.addEventListener('tickets_updated', handleSync);
     window.addEventListener('storage', handleSync);
 
     // Supabase Real-time subscriptions for instant live syncing
@@ -376,6 +429,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
     return () => {
       window.removeEventListener('tasks_updated', handleSync);
       window.removeEventListener('submissions_updated', handleSync);
+      window.removeEventListener('tickets_updated', handleSync);
       window.removeEventListener('storage', handleSync);
       if (typeof unsubMicro === 'function') unsubMicro();
       if (typeof unsubSubs === 'function') unsubSubs();
@@ -1040,6 +1094,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
           }`}
         >
           Task Approvals ({taskSubmissions.filter((s) => s.status === 'pending_review').length})
+        </button>
+        <button
+          onClick={() => setAdminTab('support')}
+          className={`px-3 py-2 rounded-xl font-medium transition-all flex items-center gap-1.5 ${
+            adminTab === 'support' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <HelpCircle className="w-3.5 h-3.5 text-purple-400" />
+          <span>Support / Tickets</span>
+          {supportTickets.filter((t) => t.status === 'open' || t.status === 'under_review').length > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full bg-amber-500 text-slate-950 font-bold text-[10px]">
+              {supportTickets.filter((t) => t.status === 'open' || t.status === 'under_review').length}
+            </span>
+          )}
         </button>
         <button
           onClick={() => setAdminTab('tasks')}
@@ -2489,6 +2557,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
       {adminTab === 'video_settings' && (
         <div>
           <AdminVideoTaskSettings />
+        </div>
+      )}
+
+      {/* SUPPORT & ISSUE TICKETS */}
+      {adminTab === 'support' && (
+        <div>
+          <AdminSupportTickets
+            tickets={supportTickets}
+            onRefresh={fetchAdminData}
+            apiFetch={apiFetch}
+            currentUser={user}
+          />
         </div>
       )}
 

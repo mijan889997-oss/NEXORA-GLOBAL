@@ -55,7 +55,7 @@ export const AuthPages: React.FC<AuthPagesProps> = ({ mode, navigate }) => {
     try {
       if (mode === 'login') {
         await login(email, password);
-        navigate('/dashboard');
+        navigate('/dashboard/earn');
       } else {
         if (!disclaimerAccepted) {
           setError('You must accept the Earnings Disclaimer and Terms to register.');
@@ -70,7 +70,7 @@ export const AuthPages: React.FC<AuthPagesProps> = ({ mode, navigate }) => {
           phone,
           referralCode: referralCode.trim() || undefined,
         });
-        navigate('/dashboard');
+        navigate('/dashboard/earn');
       }
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
