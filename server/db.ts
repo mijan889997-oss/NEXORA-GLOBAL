@@ -658,6 +658,20 @@ class DatabaseEngine {
         }
       }
 
+      // Sync balance and points into user and profile records
+      const user = this.data.users.find((u) => u.id === userId);
+      if (user) {
+        (user as any).balance = newBalance;
+        (user as any).points = Math.round(newBalance * 1000);
+        user.updatedAt = now;
+      }
+      const profile = this.data.profiles.find((p) => p.userId === userId);
+      if (profile) {
+        (profile as any).balance = newBalance;
+        (profile as any).points = Math.round(newBalance * 1000);
+        profile.updatedAt = now;
+      }
+
       const transaction: Transaction = {
         id: `tx_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
         walletId: wallet.id,

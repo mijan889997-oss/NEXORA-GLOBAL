@@ -280,54 +280,38 @@ export async function insertSupabaseMicrotask(task: Partial<Task> & { title: str
  */
 export async function updateSupabaseMicrotask(id: string, updates: Partial<Task>): Promise<{ success: boolean; error: any }> {
   try {
-    const rowUpdates: any = {};
-    if (updates.title !== undefined) rowUpdates.title = updates.title;
-    if (updates.category !== undefined) rowUpdates.category = updates.category;
-    if (updates.description !== undefined) rowUpdates.description = updates.description;
-    if (updates.instructions !== undefined) rowUpdates.instructions = updates.instructions;
-    if (updates.proofRequirements !== undefined) {
-      rowUpdates.proof_requirements = updates.proofRequirements;
-      rowUpdates.proofRequirements = updates.proofRequirements;
-    }
+    const microtaskUpdates: Record<string, any> = {};
+    if (updates.title !== undefined) microtaskUpdates.title = updates.title;
+    if (updates.category !== undefined) microtaskUpdates.category = updates.category;
     if (updates.rewardAmount !== undefined) {
-      rowUpdates.reward_amount = updates.rewardAmount;
-      rowUpdates.rewardAmount = updates.rewardAmount;
-      rowUpdates.reward_coins = updates.rewardCoins || Math.round(updates.rewardAmount * 1000);
-      rowUpdates.rewardCoins = updates.rewardCoins || Math.round(updates.rewardAmount * 1000);
-    }
-    if (updates.timerSeconds !== undefined) {
-      rowUpdates.timer_seconds = updates.timerSeconds;
-      rowUpdates.timerSeconds = updates.timerSeconds;
-    }
-    if (updates.youtubeVideoId !== undefined) {
-      rowUpdates.youtube_video_id = updates.youtubeVideoId;
-      rowUpdates.youtubeVideoId = updates.youtubeVideoId;
-    }
-    if (updates.targetUrl !== undefined) {
-      rowUpdates.target_url = updates.targetUrl;
-      rowUpdates.targetUrl = updates.targetUrl;
+      microtaskUpdates.reward = Number(updates.rewardAmount);
+    } else if ((updates as any).reward !== undefined) {
+      microtaskUpdates.reward = Number((updates as any).reward);
     }
     if (updates.totalSlots !== undefined) {
-      rowUpdates.total_slots = updates.totalSlots;
-      rowUpdates.totalSlots = updates.totalSlots;
+      microtaskUpdates.slots = Number(updates.totalSlots);
+    } else if ((updates as any).slots !== undefined) {
+      microtaskUpdates.slots = Number((updates as any).slots);
     }
-    if (updates.verificationType !== undefined) {
-      rowUpdates.verification_type = updates.verificationType;
-      rowUpdates.verificationType = updates.verificationType;
+    if (updates.targetUrl !== undefined) {
+      microtaskUpdates.link = updates.targetUrl;
+    } else if (updates.youtubeVideoId) {
+      microtaskUpdates.link = `https://www.youtube.com/watch?v=${updates.youtubeVideoId}`;
+    }
+    if (updates.proofRequirements !== undefined || updates.description !== undefined) {
+      microtaskUpdates.proof_instructions = updates.proofRequirements || updates.description;
     }
     if (updates.status !== undefined) {
-      const isAct = updates.status === 'active';
-      rowUpdates.is_active = isAct;
-      rowUpdates.status = updates.status;
+      microtaskUpdates.is_active = updates.status === 'active';
+    } else if ((updates as any).is_active !== undefined) {
+      microtaskUpdates.is_active = Boolean((updates as any).is_active);
     }
 
-    rowUpdates.updated_at = new Date().toISOString();
-
-    const { error: microErr } = await supabase.from('microtasks').update(rowUpdates).eq('id', id);
+    const { error: microErr } = await supabase.from('microtasks').update(microtaskUpdates).eq('id', id);
     if (!microErr) return { success: true, error: null };
 
-    const { error: taskErr } = await supabase.from('tasks').update(rowUpdates).eq('id', id);
-    return { success: !taskErr, error: taskErr || microErr };
+    console.warn('[Supabase microtasks update notice]:', microErr);
+    return { success: false, error: microErr };
   } catch (err: any) {
     console.warn('[Supabase] updateSupabaseMicrotask notice:', err);
     return { success: false, error: err };
@@ -338,18 +322,12 @@ export async function updateSupabaseMicrotask(id: string, updates: Partial<Task>
  * Toggle Active/Inactive status of microtask in Supabase
  */
 export async function toggleSupabaseMicrotaskActive(id: string, isActive: boolean): Promise<{ success: boolean; error: any }> {
-  const rowUpdates = {
-    is_active: isActive,
-    status: isActive ? 'active' : 'inactive',
-    updated_at: new Date().toISOString(),
-  };
-
   try {
-    const { error: microErr } = await supabase.from('microtasks').update(rowUpdates).eq('id', id);
+    const { error: microErr } = await supabase.from('microtasks').update({ is_active: isActive }).eq('id', id);
     if (!microErr) return { success: true, error: null };
 
-    const { error: taskErr } = await supabase.from('tasks').update(rowUpdates).eq('id', id);
-    return { success: !taskErr, error: taskErr || microErr };
+    console.warn('[Supabase toggle notice]:', microErr);
+    return { success: false, error: microErr };
   } catch (err: any) {
     console.warn('[Supabase] toggleSupabaseMicrotaskActive notice:', err);
     return { success: false, error: err };

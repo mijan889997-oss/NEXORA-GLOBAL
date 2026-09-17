@@ -39,6 +39,9 @@ import {
   Download,
   HelpCircle,
   MessageSquare,
+  Database,
+  Server,
+  HardDrive,
 } from 'lucide-react';
 import { AdminRewardSettings } from '../../components/AdminRewardSettings';
 import { AdminVideoTaskSettings } from '../../components/AdminVideoTaskSettings';
@@ -142,6 +145,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
 
   // Action states
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+
+  // Database Connection Diagnostics
+  const [supabaseStatus, setSupabaseStatus] = useState<'connected' | 'checking' | 'degraded'>('checking');
+  const [backendDbStatus, setBackendDbStatus] = useState<'connected' | 'checking' | 'error'>('checking');
+  const [showDbDiagnostics, setShowDbDiagnostics] = useState(false);
+  const [diagnosticsLogs, setDiagnosticsLogs] = useState<string[]>([]);
+  const [dbErrorBanner, setDbErrorBanner] = useState<string | null>(null);
 
   // Rejection modal
   const [rejectId, setRejectId] = useState<string | null>(null);
@@ -299,6 +309,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
       if (tka?.analytics) {
         setTaskAnalytics(tka.analytics);
       }
+
+      const sbConnected = Array.isArray(sbTasks);
+      setSupabaseStatus(sbConnected ? 'connected' : 'degraded');
+      setBackendDbStatus(Array.isArray(us?.users) ? 'connected' : 'error');
+
+      const liveDiag = [
+        `Authoritative Disk Store: ${us?.users?.length ?? 0} users, ${tk?.tasks?.length ?? 0} tasks, ${wd?.withdrawals?.length ?? 0} withdrawals (data/nexvora.db.json)`,
+        `Supabase Cloud: ${sbConnected ? `Active (${sbTasks?.length ?? 0} microtasks, ${sbSubs?.length ?? 0} submissions)` : 'Degraded (RLS / missing tables fallback active)'}`,
+        `Local Storage Sync: Active (nexvora_registered_users & nexvora_custom_tasks)`,
+      ];
+      setDiagnosticsLogs(liveDiag);
+      console.info('[Admin Database Diagnostics]:', liveDiag.join(' | '));
 
       const loadedUsers = us.users || [];
       const loadedTasks = tk.tasks || [];
@@ -1029,7 +1051,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
       if (editingTask) {
         // Updating existing task in Supabase
         updateSupabaseMicrotask(editingTask.id, taskPayload).catch((err) =>
-          console.warn('[Supabase] Task update notice:', err)
+          console.error('[Supabase Microtask Update Error]:', err)
         );
 
         // Updating existing task in backend
@@ -1043,30 +1065,31 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
         savedTaskId = `TASK-${Date.now()}`;
         // Insert into Supabase microtasks
         insertSupabaseMicrotask({ id: savedTaskId, ...taskPayload }).catch((err) =>
-          console.warn('[Supabase] Task insert notice:', err)
+          console.error('[Supabase Microtask Insert Error]:', err)
         );
 
         // Creating new task in backend
         const res = await apiFetch('/api/admin/tasks', {
           method: 'POST',
-          body: JSON.stringify(taskPayload),
+          body: JSON.stringify({ id: savedTaskId, ...taskPayload }),
         });
         if (res?.task?.id) savedTaskId = res.task.id;
         setActionFeedback(`New microtask "${newTaskTitle}" created & published to Marketplace with $${calculatedReward.toFixed(2)} payout.`);
       }
 
       // Store created task in dynamic state / localStorage so it instantly appears on the user's Marketplace page (/dashboard/tasks)
+      const taskObj = {
+        id: savedTaskId,
+        ...taskPayload,
+        reward: calculatedReward,
+        spotsLeft: Number(newTaskSlots),
+        employer: 'Admin Verified',
+        createdAt: new Date().toISOString(),
+      };
+
       try {
         const rawLocal = localStorage.getItem('nexvora_custom_tasks');
         const customTasks = rawLocal ? JSON.parse(rawLocal) : [];
-        const taskObj = {
-          id: savedTaskId,
-          ...taskPayload,
-          reward: calculatedReward,
-          spotsLeft: Number(newTaskSlots),
-          employer: 'Admin Verified',
-          createdAt: new Date().toISOString(),
-        };
         const filtered = customTasks.filter((t: any) => t.id !== savedTaskId);
         filtered.unshift(taskObj);
         localStorage.setItem('nexvora_custom_tasks', JSON.stringify(filtered));
@@ -1074,6 +1097,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
       } catch (err) {
         console.warn('localStorage sync error:', err);
       }
+
+      // Asynchronously sync task to authoritative backend JSON disk database
+      apiFetch('/api/admin/tasks/sync', {
+        method: 'POST',
+        body: JSON.stringify({ tasks: [taskObj] }),
+      }).catch((syncErr) => console.warn('[Backend task sync notice]:', syncErr));
 
       setShowNewTaskModal(false);
       setEditingTask(null);
@@ -1422,7 +1451,34 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Connection Diagnostics Badge */}
+          <button
+            id="admin-db-status-badge"
+            onClick={() => setShowDbDiagnostics(true)}
+            className="px-3 py-1.5 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700 text-xs flex items-center gap-2 transition-all cursor-pointer group"
+            title="Click to view database connection status and live diagnostics"
+          >
+            <span className="relative flex h-2 w-2">
+              <span
+                className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                  supabaseStatus === 'connected' ? 'bg-emerald-400' : 'bg-amber-400'
+                }`}
+              ></span>
+              <span
+                className={`relative inline-flex rounded-full h-2 w-2 ${
+                  supabaseStatus === 'connected' ? 'bg-emerald-500' : 'bg-amber-500'
+                }`}
+              ></span>
+            </span>
+            <span className="font-semibold text-slate-200">
+              {supabaseStatus === 'connected' ? 'Supabase Connected' : 'Persistent Storage'}
+            </span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-950 text-slate-400 border border-slate-800 font-mono">
+              JSON Disk
+            </span>
+          </button>
+
           <button
             onClick={async () => {
               setActionFeedback('Refreshing database and synchronizing all tables...');
@@ -1436,6 +1492,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
           </button>
         </div>
       </div>
+
+      {dbErrorBanner && (
+        <div className="p-4 rounded-xl bg-rose-950/80 border border-rose-800 text-rose-300 text-xs flex items-center justify-between shadow-lg">
+          <div className="flex items-center gap-2.5">
+            <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+            <span className="font-medium">{dbErrorBanner}</span>
+          </div>
+          <button
+            onClick={() => setDbErrorBanner(null)}
+            className="text-rose-400 hover:text-white px-2 py-1 rounded bg-rose-900/50 hover:bg-rose-900 text-xs"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {actionFeedback && (
         <div className="p-3 rounded-xl bg-emerald-950/80 border border-emerald-800 text-emerald-300 text-xs flex items-center justify-between">
@@ -3130,6 +3201,121 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
                 className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-600/25 transition-colors"
               >
                 <CheckCircle2 className="w-4 h-4" /> Confirm & Mark Disbursed
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DATABASE & STORAGE DIAGNOSTICS MODAL */}
+      {showDbDiagnostics && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-xl p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl space-y-5 my-8">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <Database className="w-5 h-5 text-purple-400" />
+                <h3 className="text-base font-bold text-white font-['Space_Grotesk']">
+                  Database & Storage Diagnostics
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowDbDiagnostics(false)}
+                className="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Architecture overview */}
+            <div className="space-y-3">
+              <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Server className="w-4 h-4 text-emerald-400" />
+                    <span className="text-xs font-semibold text-slate-200">Authoritative Disk Storage</span>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold uppercase">
+                    100% Persistent
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Target: <code className="text-slate-300 font-mono">data/nexvora.db.json</code>. Persists all registered users, microtasks, withdrawals, and submissions directly to server disk. Survives browser refresh and server restarts.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Database className="w-4 h-4 text-purple-400" />
+                    <span className="text-xs font-semibold text-slate-200">Supabase Cloud Database</span>
+                  </div>
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase border ${
+                      supabaseStatus === 'connected'
+                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                        : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                    }`}
+                  >
+                    {supabaseStatus === 'connected' ? 'Connected' : 'Degraded (Fallback active)'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  URL: <code className="text-slate-300 font-mono">https://nnxdtwkwohjnkhynfujp.supabase.co</code>. Table <code className="text-slate-300 font-mono">microtasks</code> is mapped and synchronized.
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <HardDrive className="w-4 h-4 text-blue-400" />
+                    <span className="text-xs font-semibold text-slate-200">Client-Side Cache (LocalStorage)</span>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 font-bold uppercase">
+                    Active
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Provides zero-latency optimistic UI caching with automated cross-tab synchronization.
+                </p>
+              </div>
+            </div>
+
+            {/* Diagnostic Logs */}
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                Live Diagnostic Health Logs
+              </span>
+              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-[10px] text-slate-300 space-y-1 max-h-40 overflow-y-auto">
+                {diagnosticsLogs.length > 0 ? (
+                  diagnosticsLogs.map((log, i) => (
+                    <div key={i} className="flex items-start gap-1.5">
+                      <span className="text-purple-400 font-bold">›</span>
+                      <span>{log}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-slate-500">No diagnostic logs recorded yet.</div>
+                )}
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-800">
+              <button
+                onClick={async () => {
+                  setActionFeedback('Re-testing database endpoints...');
+                  await fetchAdminData();
+                  setTimeout(() => setActionFeedback(null), 3000);
+                }}
+                className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                Run Health Ping
+              </button>
+              <button
+                onClick={() => setShowDbDiagnostics(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs cursor-pointer"
+              >
+                Close
               </button>
             </div>
           </div>

@@ -28,7 +28,95 @@
       "referralCode": "TEST1197",
       "emailVerified": false,
       "createdAt": "2026-09-11T02:56:01.946Z",
-      "updatedAt": "2026-09-11T02:56:01.946Z"
+      "updatedAt": "2026-09-16T19:40:32.310Z"
+    },
+    {
+      "id": "usr_seed_earner_002",
+      "email": "elena.rostova@nexvora.com",
+      "passwordHash": "***",
+      "fullName": "Elena Rostova",
+      "username": "elena_r",
+      "phone": "+18005550188",
+      "role": "USER",
+      "status": "active",
+      "referralCode": "ELENA_PRO",
+      "emailVerified": true,
+      "createdAt": "2026-09-11T19:23:09.428Z",
+      "updatedAt": "2026-09-16T19:40:36.690Z"
+    },
+    {
+      "id": "usr_1789587950306_bdbrn",
+      "email": "tester_user_persist@nexvora.global",
+      "passwordHash": "$2b$10$e62aXNYidyQOLPnnExvjlOe9Vw2S4S47zOuvwOshaJxqoV/ltUg3O",
+      "fullName": "Test Persistence User",
+      "username": "persistuser1",
+      "phone": "",
+      "role": "USER",
+      "status": "active",
+      "referralCode": "PERS6231",
+      "emailVerified": false,
+      "createdAt": "2026-09-16T19:45:50.306Z",
+      "updatedAt": "2026-09-16T19:45:50.306Z"
+    },
+    {
+      "id": "usr_1789611045809_zb615",
+      "email": "worker_sanity_1789611045806@example.com",
+      "passwordHash": "$2b$10$YshuVQ0ltZkpjF.PadngheHR88tExZRtxUr/9LSrDjh98Y.S0C8jO",
+      "fullName": "Sanity Test Worker",
+      "username": "worker_1789611045806",
+      "phone": "",
+      "role": "USER",
+      "status": "active",
+      "referralCode": "WORK9344",
+      "emailVerified": false,
+      "createdAt": "2026-09-17T02:10:45.809Z",
+      "updatedAt": "2026-09-17T02:10:45.809Z"
+    },
+    {
+      "id": "usr_1789611085814_xjb86",
+      "email": "worker_sanity_1789611085810@example.com",
+      "passwordHash": "$2b$10$hhS6vBFXQ6TjlSHS8suW/uLxYE1aNCPbCjsHo.Y.vivrKLdFhiq1.",
+      "fullName": "Sanity Test Worker",
+      "username": "worker_1789611085810",
+      "phone": "",
+      "role": "USER",
+      "status": "active",
+      "referralCode": "WORK3480",
+      "emailVerified": false,
+      "createdAt": "2026-09-17T02:11:25.814Z",
+      "updatedAt": "2026-09-17T02:11:25.814Z"
+    },
+    {
+      "id": "usr_1789611123936_k1u4s",
+      "email": "worker_sanity_1789611123932@example.com",
+      "passwordHash": "$2b$10$R2FBAWjvwmZ9ORdU7Q.XFeEg0jFlZWAJE2Yk7DIk0QEd75iSzKHNq",
+      "fullName": "Sanity Test Worker",
+      "username": "worker_1789611123932",
+      "phone": "",
+      "role": "USER",
+      "status": "active",
+      "referralCode": "WORK3069",
+      "emailVerified": false,
+      "createdAt": "2026-09-17T02:12:03.936Z",
+      "updatedAt": "2026-09-17T02:12:04.107Z",
+      "balance": 2.12,
+      "points": 2120
+    },
+    {
+      "id": "usr_1789611158442_4t0jt",
+      "email": "worker_sanity_1789611158437@example.com",
+      "passwordHash": "$2b$10$BecDZy59KHIacxAzTY2d9Ow.uLfRtKtRu4Dpstz/8Aen0i0wWdecK",
+      "fullName": "Sanity Test Worker",
+      "username": "worker_1789611158437",
+      "phone": "",
+      "role": "USER",
+      "status": "active",
+      "referralCode": "WORK6580",
+      "emailVerified": false,
+      "createdAt": "2026-09-17T02:12:38.442Z",
+      "updatedAt": "2026-09-17T02:12:38.611Z",
+      "balance": 2.05,
+      "points": 2050
     }
   ],
   "profiles": [
@@ -61,6 +149,83 @@
       "country": "Global",
       "kycStatus": "unsubmitted",
       "updatedAt": "2026-09-11T02:56:01.946Z"
+    },
+    {
+      "id": "prof_usr_1789587950306_bdbrn",
+      "userId": "usr_1789587950306_bdbrn",
+      "headline": "Digital Freelancer & Learner",
+      "bio": "",
+      "skills": [],
+      "languages": [
+        "English"
+      ],
+      "country": "Global",
+      "kycStatus": "unsubmitted",
+      "updatedAt": "2026-09-16T19:45:50.306Z"
+    },
+    {
+      "id": "prof_usr_1789611045809_zb615",
+      "userId": "usr_1789611045809_zb615",
+      "headline": "Digital Freelancer & Learner",
+      "bio": "",
+      "skills": [],
+      "languages": [
+        "English"
+      ],
+      "country": "Global",
+      "kycStatus": "unsubmitted",
+      "updatedAt": "2026-09-17T02:10:45.809Z"
+    },
+    {
+      "id": "prof_usr_1789611085814_xjb86",
+      "userId": "usr_1789611085814_xjb86",
+      "headline": "Digital Freelancer & Learner",
+      "bio": "",
+      "skills": [],
+      "languages": [
+        "English"
+      ],
+      "country": "Global",
+      "kycStatus": "unsubmitted",
+      "updatedAt": "2026-09-17T02:11:25.814Z"
+    },
+    {
+      "id": "prof_usr_1789611123936_k1u4s",
+      "userId": "usr_1789611123936_k1u4s",
+      "headline": "Digital Freelancer & Learner",
+      "bio": "",
+      "skills": [],
+      "languages": [
+        "English"
+      ],
+      "country": "Global",
+      "kycStatus": "verified",
+      "updatedAt": "2026-09-17T02:12:04.125Z",
+      "balance": 2.12,
+      "points": 2120,
+      "kycDocumentType": "National ID Card",
+      "kycDocumentNumber": "NID-19948201948",
+      "kycNotes": "Approved in sanity check",
+      "kycSubmittedAt": "2026-09-17T02:12:04.116Z"
+    },
+    {
+      "id": "prof_usr_1789611158442_4t0jt",
+      "userId": "usr_1789611158442_4t0jt",
+      "headline": "Digital Freelancer & Learner",
+      "bio": "",
+      "skills": [],
+      "languages": [
+        "English"
+      ],
+      "country": "Global",
+      "kycStatus": "verified",
+      "updatedAt": "2026-09-17T02:12:38.630Z",
+      "balance": 2.05,
+      "points": 2050,
+      "kycDocumentType": "National ID Card",
+      "kycDocumentNumber": "NID-19948201948",
+      "kycNotes": "Approved in sanity check",
+      "kycSubmittedAt": "2026-09-17T02:12:38.621Z"
     }
   ],
   "roles": [
@@ -170,15 +335,180 @@
       "sellerName": "Mijanur Rahman (mdmijan4)",
       "sellerUsername": "mdmijan4",
       "status": "active",
-      "createdAt": "2026-09-11T06:01:19.366Z",
-      "updatedAt": "2026-09-11T06:01:19.366Z"
+      "createdAt": "2026-09-16T19:51:43.348Z",
+      "updatedAt": "2026-09-16T19:51:43.348Z"
     }
   ],
   "jobs": [],
   "proposals": [],
   "orders": [],
-  "tasks": [],
-  "task_submissions": [],
+  "tasks": [
+    {
+      "id": "TASK-TEST-001",
+      "title": "Test Microtask 1",
+      "category": "PTC (Website Visit)",
+      "description": "Test microtask description",
+      "instructions": [
+        "Complete the task requirements and verify completion."
+      ],
+      "rewardAmount": 0.05,
+      "rewardCoins": 50,
+      "timerSeconds": 15,
+      "totalSlots": 100,
+      "slotsRemaining": 99,
+      "timeLimitMinutes": 15,
+      "verificationType": "instant_timer",
+      "status": "active",
+      "createdById": "usr_superadmin_001",
+      "createdAt": "2026-09-16T19:51:55.024Z",
+      "updatedAt": "2026-09-16T19:51:55.024Z"
+    }
+  ],
+  "task_submissions": [
+    {
+      "id": "sub_seed_001",
+      "taskId": "adsterra_1",
+      "taskTitle": "Adsterra প্রিমিয়াম স্পন্সরড ভিজিট ১",
+      "taskCategory": "Visit & Earn",
+      "userId": "usr_1789095361946_x8xkf",
+      "userName": "Test Worker",
+      "userEmail": "testworker@example.com",
+      "rewardAmount": 0.02,
+      "proofData": {
+        "textNotes": "Visited target page and completed full 15s session duration.",
+        "screenshotUrl": "https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=400&q=80",
+        "proofUrl": "https://www.profitableratecpmnetwork.com/yct17pt7yz"
+      },
+      "status": "pending_review",
+      "submittedAt": "2026-09-16T17:51:43.349Z",
+      "createdAt": "2026-09-16T17:51:43.349Z",
+      "updatedAt": "2026-09-16T17:51:43.349Z"
+    },
+    {
+      "id": "sub_seed_002",
+      "taskId": "monetag_1",
+      "taskTitle": "Monetag স্মার্টলিঙ্ক টাস্ক ১",
+      "taskCategory": "Sponsored",
+      "userId": "usr_seed_earner_002",
+      "userName": "Elena Rostova",
+      "userEmail": "elena.rostova@nexvora.com",
+      "rewardAmount": 0.02,
+      "proofData": {
+        "textNotes": "Verified smartlink action and confirmed redirect url.",
+        "proofUrl": "https://omg10.com/4/11775258"
+      },
+      "status": "approved",
+      "reviewedBy": "usr_superadmin_001",
+      "reviewedAt": "2026-09-16T13:51:43.349Z",
+      "submittedAt": "2026-09-16T11:51:43.349Z",
+      "createdAt": "2026-09-16T11:51:43.349Z",
+      "updatedAt": "2026-09-16T13:51:43.349Z"
+    },
+    {
+      "id": "sub_1789611045921_483ii",
+      "taskId": "tsk_1789588228361",
+      "taskTitle": "Automated Verification of Task Persistence",
+      "taskCategory": "Surveys & Testing",
+      "rewardAmount": 0.12,
+      "rewardCoins": 120,
+      "userId": "usr_1789611045809_zb615",
+      "userName": "Sanity Test Worker",
+      "userEmail": "worker_sanity_1789611045806@example.com",
+      "proofData": {
+        "textNotes": "Completed the visit and took screenshot",
+        "proofUrl": "https://example.com/proof-link",
+        "screenshotUrl": "https://example.com/screenshot.png",
+        "transactionOrProfileId": "PROMO-USER-7788"
+      },
+      "textNotes": "Completed the visit and took screenshot",
+      "proofUrl": "https://example.com/proof-link",
+      "screenshotUrl": "https://example.com/screenshot.png",
+      "transactionOrProfileId": "PROMO-USER-7788",
+      "status": "approved",
+      "submittedAt": "2026-09-17T02:10:45.921Z",
+      "createdAt": "2026-09-17T02:10:45.921Z",
+      "reviewedBy": "usr_superadmin_001",
+      "reviewedAt": "2026-09-17T02:10:45.933Z"
+    },
+    {
+      "id": "sub_1789611085924_cqq37",
+      "taskId": "tsk_1789588228361",
+      "taskTitle": "Automated Verification of Task Persistence",
+      "taskCategory": "Surveys & Testing",
+      "rewardAmount": 0.12,
+      "rewardCoins": 120,
+      "userId": "usr_1789611085814_xjb86",
+      "userName": "Sanity Test Worker",
+      "userEmail": "worker_sanity_1789611085810@example.com",
+      "proofData": {
+        "textNotes": "Completed the visit and took screenshot",
+        "proofUrl": "https://example.com/proof-link",
+        "screenshotUrl": "https://example.com/screenshot.png",
+        "transactionOrProfileId": "PROMO-USER-7788"
+      },
+      "textNotes": "Completed the visit and took screenshot",
+      "proofUrl": "https://example.com/proof-link",
+      "screenshotUrl": "https://example.com/screenshot.png",
+      "transactionOrProfileId": "PROMO-USER-7788",
+      "status": "approved",
+      "submittedAt": "2026-09-17T02:11:25.924Z",
+      "createdAt": "2026-09-17T02:11:25.924Z",
+      "reviewedBy": "usr_superadmin_001",
+      "reviewedAt": "2026-09-17T02:11:25.936Z"
+    },
+    {
+      "id": "sub_1789611124055_50zy7",
+      "taskId": "tsk_1789588228361",
+      "taskTitle": "Automated Verification of Task Persistence",
+      "taskCategory": "Surveys & Testing",
+      "rewardAmount": 0.12,
+      "rewardCoins": 120,
+      "userId": "usr_1789611123936_k1u4s",
+      "userName": "Sanity Test Worker",
+      "userEmail": "worker_sanity_1789611123932@example.com",
+      "proofData": {
+        "textNotes": "Completed the visit and took screenshot",
+        "proofUrl": "https://example.com/proof-link",
+        "screenshotUrl": "https://example.com/screenshot.png",
+        "transactionOrProfileId": "PROMO-USER-7788"
+      },
+      "textNotes": "Completed the visit and took screenshot",
+      "proofUrl": "https://example.com/proof-link",
+      "screenshotUrl": "https://example.com/screenshot.png",
+      "transactionOrProfileId": "PROMO-USER-7788",
+      "status": "approved",
+      "submittedAt": "2026-09-17T02:12:04.055Z",
+      "createdAt": "2026-09-17T02:12:04.055Z",
+      "reviewedBy": "usr_superadmin_001",
+      "reviewedAt": "2026-09-17T02:12:04.069Z"
+    },
+    {
+      "id": "sub_1789611158557_ii05d",
+      "taskId": "TASK-TEST-001",
+      "taskTitle": "Test Microtask 1",
+      "taskCategory": "PTC (Website Visit)",
+      "rewardAmount": 0.05,
+      "rewardCoins": 50,
+      "userId": "usr_1789611158442_4t0jt",
+      "userName": "Sanity Test Worker",
+      "userEmail": "worker_sanity_1789611158437@example.com",
+      "proofData": {
+        "textNotes": "Completed the visit and took screenshot",
+        "proofUrl": "https://example.com/proof-link",
+        "screenshotUrl": "https://example.com/screenshot.png",
+        "transactionOrProfileId": "PROMO-USER-7788"
+      },
+      "textNotes": "Completed the visit and took screenshot",
+      "proofUrl": "https://example.com/proof-link",
+      "screenshotUrl": "https://example.com/screenshot.png",
+      "transactionOrProfileId": "PROMO-USER-7788",
+      "status": "approved",
+      "submittedAt": "2026-09-17T02:12:38.557Z",
+      "createdAt": "2026-09-17T02:12:38.557Z",
+      "reviewedBy": "usr_superadmin_001",
+      "reviewedAt": "2026-09-17T02:12:38.572Z"
+    }
+  ],
   "courses": [],
   "lessons": [],
   "products": [],
@@ -191,25 +521,241 @@
     {
       "id": "wal_superadmin_001",
       "userId": "usr_superadmin_001",
-      "availableBalance": 0.022,
+      "availableBalance": 251.17,
       "pendingBalance": 0,
-      "totalEarned": 0.022,
+      "totalEarned": 1.17,
       "totalWithdrawn": 0,
       "currency": "USD",
-      "updatedAt": "2026-09-11T10:11:39.317Z"
+      "updatedAt": "2026-09-16T19:28:12.089Z"
     },
     {
       "id": "wal_usr_1789095361946_x8xkf",
       "userId": "usr_1789095361946_x8xkf",
-      "availableBalance": 0.003,
+      "availableBalance": 15.003,
       "pendingBalance": 0,
       "totalEarned": 0.003,
       "totalWithdrawn": 0,
       "currency": "USD",
-      "updatedAt": "2026-09-11T03:14:07.009Z"
+      "updatedAt": "2026-09-16T19:28:14.022Z"
+    },
+    {
+      "id": "wal_1789586857889_w9nci",
+      "userId": "usr_seed_earner_002",
+      "availableBalance": 10,
+      "pendingBalance": 0,
+      "totalEarned": 0,
+      "totalWithdrawn": 0,
+      "currency": "USD",
+      "updatedAt": "2026-09-16T19:27:37.889Z"
+    },
+    {
+      "id": "wal_usr_1789587950306_bdbrn",
+      "userId": "usr_1789587950306_bdbrn",
+      "availableBalance": 0,
+      "pendingBalance": 0,
+      "totalEarned": 0,
+      "totalWithdrawn": 0,
+      "currency": "USD",
+      "updatedAt": "2026-09-16T19:45:50.306Z"
+    },
+    {
+      "id": "wal_usr_1789611045809_zb615",
+      "userId": "usr_1789611045809_zb615",
+      "availableBalance": 0.12,
+      "pendingBalance": 0,
+      "totalEarned": 0.12,
+      "totalWithdrawn": 0,
+      "currency": "USD",
+      "updatedAt": "2026-09-17T02:10:45.934Z"
+    },
+    {
+      "id": "wal_usr_1789611085814_xjb86",
+      "userId": "usr_1789611085814_xjb86",
+      "availableBalance": 0.12,
+      "pendingBalance": 0,
+      "totalEarned": 0.12,
+      "totalWithdrawn": 0,
+      "currency": "USD",
+      "updatedAt": "2026-09-17T02:11:25.936Z"
+    },
+    {
+      "id": "wal_usr_1789611123936_k1u4s",
+      "userId": "usr_1789611123936_k1u4s",
+      "availableBalance": 2.12,
+      "pendingBalance": 0,
+      "totalEarned": 0.12,
+      "totalWithdrawn": 1,
+      "currency": "USD",
+      "updatedAt": "2026-09-17T02:12:04.107Z"
+    },
+    {
+      "id": "wal_usr_1789611158442_4t0jt",
+      "userId": "usr_1789611158442_4t0jt",
+      "availableBalance": 2.05,
+      "pendingBalance": 0,
+      "totalEarned": 0.05,
+      "totalWithdrawn": 1,
+      "currency": "USD",
+      "updatedAt": "2026-09-17T02:12:38.611Z"
     }
   ],
   "transactions": [
+    {
+      "id": "tx_1789611158611_r4xclt",
+      "walletId": "wal_usr_1789611158442_4t0jt",
+      "userId": "usr_1789611158442_4t0jt",
+      "type": "Refund",
+      "amount": 1,
+      "balanceAfter": 2.05,
+      "referenceType": "withdrawal",
+      "referenceId": "wdr_1789611158598_z13y",
+      "description": "Refund for rejected withdrawal #WD-296924: Sanity test rejection - verifying automatic refund",
+      "createdAt": "2026-09-17T02:12:38.611Z"
+    },
+    {
+      "id": "tx_1789611158598_m1b4cg",
+      "walletId": "wal_usr_1789611158442_4t0jt",
+      "userId": "usr_1789611158442_4t0jt",
+      "type": "Withdrawal",
+      "amount": -1,
+      "balanceAfter": 1.05,
+      "referenceType": "withdrawal",
+      "referenceId": "wdr_1789611158598_z13y",
+      "description": "Withdrawal request #wdr_1789611158598_z13y via bKash",
+      "createdAt": "2026-09-17T02:12:38.598Z"
+    },
+    {
+      "id": "tx_1789611158588_jlraey",
+      "walletId": "wal_usr_1789611158442_4t0jt",
+      "userId": "usr_1789611158442_4t0jt",
+      "type": "Adjustment",
+      "amount": 2,
+      "balanceAfter": 2.05,
+      "referenceType": "admin_adjustment",
+      "referenceId": "adj_1789611158587",
+      "description": "Administrative ledger adjustment by admin@nexvora.global: Sanity test funds",
+      "createdAt": "2026-09-17T02:12:38.588Z"
+    },
+    {
+      "id": "tx_1789611158572_ofklbh",
+      "walletId": "wal_usr_1789611158442_4t0jt",
+      "userId": "usr_1789611158442_4t0jt",
+      "type": "Earning",
+      "amount": 0.05,
+      "balanceAfter": 0.05,
+      "referenceType": "task_submission",
+      "referenceId": "sub_1789611158557_ii05d",
+      "description": "Task reward approved: Test Microtask 1",
+      "createdAt": "2026-09-17T02:12:38.572Z"
+    },
+    {
+      "id": "tx_1789611124107_vtiemh",
+      "walletId": "wal_usr_1789611123936_k1u4s",
+      "userId": "usr_1789611123936_k1u4s",
+      "type": "Refund",
+      "amount": 1,
+      "balanceAfter": 2.12,
+      "referenceType": "withdrawal",
+      "referenceId": "wdr_1789611124092_9644",
+      "description": "Refund for rejected withdrawal #WD-705886: Sanity test rejection - verifying automatic refund",
+      "createdAt": "2026-09-17T02:12:04.107Z"
+    },
+    {
+      "id": "tx_1789611124092_vuoxui",
+      "walletId": "wal_usr_1789611123936_k1u4s",
+      "userId": "usr_1789611123936_k1u4s",
+      "type": "Withdrawal",
+      "amount": -1,
+      "balanceAfter": 1.12,
+      "referenceType": "withdrawal",
+      "referenceId": "wdr_1789611124092_9644",
+      "description": "Withdrawal request #wdr_1789611124092_9644 via bKash",
+      "createdAt": "2026-09-17T02:12:04.092Z"
+    },
+    {
+      "id": "tx_1789611124083_08vqn1",
+      "walletId": "wal_usr_1789611123936_k1u4s",
+      "userId": "usr_1789611123936_k1u4s",
+      "type": "Adjustment",
+      "amount": 2,
+      "balanceAfter": 2.12,
+      "referenceType": "admin_adjustment",
+      "referenceId": "adj_1789611124083",
+      "description": "Administrative ledger adjustment by admin@nexvora.global: Sanity test funds",
+      "createdAt": "2026-09-17T02:12:04.083Z"
+    },
+    {
+      "id": "tx_1789611124070_vbpbdb",
+      "walletId": "wal_usr_1789611123936_k1u4s",
+      "userId": "usr_1789611123936_k1u4s",
+      "type": "Earning",
+      "amount": 0.12,
+      "balanceAfter": 0.12,
+      "referenceType": "task_submission",
+      "referenceId": "sub_1789611124055_50zy7",
+      "description": "Task reward approved: Automated Verification of Task Persistence",
+      "createdAt": "2026-09-17T02:12:04.070Z"
+    },
+    {
+      "id": "tx_1789611085936_8nw8v3",
+      "walletId": "wal_usr_1789611085814_xjb86",
+      "userId": "usr_1789611085814_xjb86",
+      "type": "Earning",
+      "amount": 0.12,
+      "balanceAfter": 0.12,
+      "referenceType": "task_submission",
+      "referenceId": "sub_1789611085924_cqq37",
+      "description": "Task reward approved: Automated Verification of Task Persistence",
+      "createdAt": "2026-09-17T02:11:25.936Z"
+    },
+    {
+      "id": "tx_1789611045934_qov0se",
+      "walletId": "wal_usr_1789611045809_zb615",
+      "userId": "usr_1789611045809_zb615",
+      "type": "Earning",
+      "amount": 0.12,
+      "balanceAfter": 0.12,
+      "referenceType": "task_submission",
+      "referenceId": "sub_1789611045921_483ii",
+      "description": "Task reward approved: Automated Verification of Task Persistence",
+      "createdAt": "2026-09-17T02:10:45.934Z"
+    },
+    {
+      "id": "tx_1789586894022_25demt",
+      "walletId": "wal_usr_1789095361946_x8xkf",
+      "userId": "usr_1789095361946_x8xkf",
+      "type": "Refund",
+      "amount": 15,
+      "balanceAfter": 15.003,
+      "referenceType": "withdrawal",
+      "referenceId": "wd_seed_001",
+      "description": "Refund for rejected withdrawal #WD-2026-89101: Request declined by administrator. Balance refunded.",
+      "createdAt": "2026-09-16T19:28:14.022Z"
+    },
+    {
+      "id": "tx_1789586892089_3g0tiw",
+      "walletId": "wal_superadmin_001",
+      "userId": "usr_superadmin_001",
+      "type": "Refund",
+      "amount": 250,
+      "balanceAfter": 251.17,
+      "referenceType": "withdrawal",
+      "referenceId": "wd_1789581962118",
+      "description": "Refund for rejected withdrawal #WD-186858: Request declined by administrator. Balance refunded.",
+      "createdAt": "2026-09-16T19:28:12.089Z"
+    },
+    {
+      "id": "tx_1789586857889_1ctr1n",
+      "walletId": "wal_1789586857889_w9nci",
+      "userId": "usr_seed_earner_002",
+      "type": "Refund",
+      "amount": 10,
+      "balanceAfter": 10,
+      "referenceType": "withdrawal",
+      "referenceId": "wd_seed_003",
+      "description": "Refund for rejected withdrawal #WD-2026-89103: Request declined by administrator. Balance refunded.",
+      "createdAt": "2026-09-16T19:27:37.889Z"
+    },
     {
       "id": "tx_1789121499317_2nrx85",
       "walletId": "wal_superadmin_001",
@@ -283,7 +829,127 @@
       "createdAt": "2026-09-11T02:56:27.513Z"
     }
   ],
-  "withdrawals": [],
+  "withdrawals": [
+    {
+      "id": "wd_1789581962118",
+      "withdrawalNumber": "WD-186858",
+      "userId": "usr_superadmin_001",
+      "walletId": "wal_superadmin_001",
+      "amount": 250,
+      "fee": 0,
+      "netAmount": 250,
+      "paymentMethod": "bKash Personal",
+      "accountDetails": {
+        "emailOrWalletAddress": "01943119269",
+        "accountNumber": "01943119269",
+        "accountHolderName": "Nexvora Super Admin"
+      },
+      "status": "Rejected",
+      "createdAt": "2026-09-16T18:06:02.118Z",
+      "updatedAt": "2026-09-16T19:28:12.089Z",
+      "adminFeedback": "Request declined by administrator. Balance refunded."
+    },
+    {
+      "id": "wd_seed_001",
+      "withdrawalNumber": "WD-2026-89101",
+      "userId": "usr_1789095361946_x8xkf",
+      "userName": "Test Worker",
+      "userEmail": "testworker@example.com",
+      "amount": 15,
+      "fee": 0,
+      "netAmount": 15,
+      "paymentMethod": "bKash Personal",
+      "method": "bKash Personal",
+      "accountDetails": {
+        "accountNumber": "01712345678",
+        "emailOrWalletAddress": "01712345678"
+      },
+      "accountNumber": "01712345678",
+      "status": "Rejected",
+      "createdAt": "2026-09-16T17:23:09.428Z",
+      "updatedAt": "2026-09-16T19:28:14.022Z",
+      "adminFeedback": "Request declined by administrator. Balance refunded."
+    },
+    {
+      "id": "wd_seed_002",
+      "withdrawalNumber": "WD-2026-89102",
+      "userId": "usr_1789095361946_x8xkf",
+      "userName": "Test Worker",
+      "userEmail": "testworker@example.com",
+      "amount": 25,
+      "fee": 0,
+      "netAmount": 25,
+      "paymentMethod": "Nagad Personal",
+      "method": "Nagad Personal",
+      "accountDetails": {
+        "accountNumber": "01898765432",
+        "emailOrWalletAddress": "01898765432"
+      },
+      "accountNumber": "01898765432",
+      "status": "Completed",
+      "createdAt": "2026-09-13T19:23:09.428Z",
+      "updatedAt": "2026-09-15T19:23:09.428Z"
+    },
+    {
+      "id": "wd_seed_003",
+      "withdrawalNumber": "WD-2026-89103",
+      "userId": "usr_seed_earner_002",
+      "userName": "Elena Rostova",
+      "userEmail": "elena.rostova@nexvora.com",
+      "amount": 10,
+      "fee": 0,
+      "netAmount": 10,
+      "paymentMethod": "Rocket Personal",
+      "method": "Rocket Personal",
+      "accountDetails": {
+        "accountNumber": "01987654321",
+        "emailOrWalletAddress": "01987654321"
+      },
+      "accountNumber": "01987654321",
+      "status": "Rejected",
+      "createdAt": "2026-09-16T14:23:09.428Z",
+      "updatedAt": "2026-09-16T19:27:37.889Z",
+      "adminFeedback": "Request declined by administrator. Balance refunded."
+    },
+    {
+      "id": "wdr_1789611124092_9644",
+      "withdrawalNumber": "WD-705886",
+      "userId": "usr_1789611123936_k1u4s",
+      "walletId": "wal_usr_1789611123936_k1u4s",
+      "amount": 1,
+      "fee": 0,
+      "netAmount": 1,
+      "paymentMethod": "bKash",
+      "accountDetails": {
+        "accountNumber": "01700000000 (Personal)",
+        "emailOrWalletAddress": "01700000000 (Personal)"
+      },
+      "status": "Rejected",
+      "notes": "Sanity check test payout",
+      "createdAt": "2026-09-17T02:12:04.092Z",
+      "updatedAt": "2026-09-17T02:12:04.107Z",
+      "adminFeedback": "Sanity test rejection - verifying automatic refund"
+    },
+    {
+      "id": "wdr_1789611158598_z13y",
+      "withdrawalNumber": "WD-296924",
+      "userId": "usr_1789611158442_4t0jt",
+      "walletId": "wal_usr_1789611158442_4t0jt",
+      "amount": 1,
+      "fee": 0,
+      "netAmount": 1,
+      "paymentMethod": "bKash",
+      "accountDetails": {
+        "accountNumber": "01700000000 (Personal)",
+        "emailOrWalletAddress": "01700000000 (Personal)"
+      },
+      "status": "Rejected",
+      "notes": "Sanity check test payout",
+      "createdAt": "2026-09-17T02:12:38.598Z",
+      "updatedAt": "2026-09-17T02:12:38.611Z",
+      "adminFeedback": "Sanity test rejection - verifying automatic refund"
+    }
+  ],
   "payments": [
     {
       "id": "bKash Personal",
@@ -361,12 +1027,779 @@
       "link": "/earn",
       "read": false,
       "createdAt": "2026-09-11T10:11:39.318Z"
+    },
+    {
+      "id": "notif_1789586840551",
+      "userId": "usr_1789095361946_x8xkf",
+      "title": "Task Submission Rejected",
+      "message": "Your submission for \"undefined\" was rejected: Proof rejected by admin",
+      "type": "task",
+      "read": false,
+      "createdAt": "2026-09-16T19:27:20.551Z"
+    },
+    {
+      "id": "notif_1789586857891",
+      "userId": "usr_seed_earner_002",
+      "title": "Withdrawal Status Update: Rejected",
+      "message": "Your withdrawal request was rejected. $10 has been refunded to your wallet balance.",
+      "type": "withdrawal",
+      "read": false,
+      "createdAt": "2026-09-16T19:27:37.889Z"
+    },
+    {
+      "id": "notif_1789586892090",
+      "userId": "usr_superadmin_001",
+      "title": "Withdrawal Status Update: Rejected",
+      "message": "Your withdrawal request was rejected. $250 has been refunded to your wallet balance.",
+      "type": "withdrawal",
+      "read": false,
+      "createdAt": "2026-09-16T19:28:12.089Z"
+    },
+    {
+      "id": "notif_1789586894023",
+      "userId": "usr_1789095361946_x8xkf",
+      "title": "Withdrawal Status Update: Rejected",
+      "message": "Your withdrawal request was rejected. $15 has been refunded to your wallet balance.",
+      "type": "withdrawal",
+      "read": false,
+      "createdAt": "2026-09-16T19:28:14.022Z"
+    },
+    {
+      "id": "notif_1789587032104_z940",
+      "userId": "usr_superadmin_001",
+      "title": "Support Ticket TKT-337901 Update",
+      "message": "Support team has replied to your inquiry: \"হহ\".",
+      "type": "system",
+      "read": false,
+      "createdAt": "2026-09-16T19:30:32.103Z"
+    },
+    {
+      "id": "notif_1789587950416",
+      "userId": "usr_1789587950306_bdbrn",
+      "title": "Welcome to NEXVORA GLOBAL",
+      "message": "Explore vetted digital marketing services, verified tasks, and skill certifications.",
+      "type": "system",
+      "read": false,
+      "createdAt": "2026-09-16T19:45:50.306Z"
+    },
+    {
+      "id": "notif_1789611045904",
+      "userId": "usr_1789611045809_zb615",
+      "title": "Welcome to NEXVORA GLOBAL",
+      "message": "Explore vetted digital marketing services, verified tasks, and skill certifications.",
+      "type": "system",
+      "read": false,
+      "createdAt": "2026-09-17T02:10:45.809Z"
+    },
+    {
+      "id": "notif_1789611045923",
+      "userId": "usr_1789611045809_zb615",
+      "title": "Task Proof Submitted",
+      "message": "Your proof for task \"Automated Verification of Task Persistence\" was submitted successfully. Our compliance team will review your submission.",
+      "type": "task",
+      "read": false,
+      "createdAt": "2026-09-17T02:10:45.921Z"
+    },
+    {
+      "id": "notif_1789611045934",
+      "userId": "usr_1789611045809_zb615",
+      "title": "Task Submission Approved",
+      "message": "Your work on \"Automated Verification of Task Persistence\" was approved. $0.12 credited to your wallet.",
+      "type": "task",
+      "read": false,
+      "createdAt": "2026-09-17T02:10:45.933Z"
+    },
+    {
+      "id": "notif_1789611085909",
+      "userId": "usr_1789611085814_xjb86",
+      "title": "Welcome to NEXVORA GLOBAL",
+      "message": "Explore vetted digital marketing services, verified tasks, and skill certifications.",
+      "type": "system",
+      "read": false,
+      "createdAt": "2026-09-17T02:11:25.814Z"
+    },
+    {
+      "id": "notif_1789611085926",
+      "userId": "usr_1789611085814_xjb86",
+      "title": "Task Proof Submitted",
+      "message": "Your proof for task \"Automated Verification of Task Persistence\" was submitted successfully. Our compliance team will review your submission.",
+      "type": "task",
+      "read": false,
+      "createdAt": "2026-09-17T02:11:25.924Z"
+    },
+    {
+      "id": "notif_1789611085936",
+      "userId": "usr_1789611085814_xjb86",
+      "title": "Task Submission Approved",
+      "message": "Your work on \"Automated Verification of Task Persistence\" was approved. $0.12 credited to your wallet.",
+      "type": "task",
+      "read": false,
+      "createdAt": "2026-09-17T02:11:25.936Z"
+    },
+    {
+      "id": "notif_1789611124034",
+      "userId": "usr_1789611123936_k1u4s",
+      "title": "Welcome to NEXVORA GLOBAL",
+      "message": "Explore vetted digital marketing services, verified tasks, and skill certifications.",
+      "type": "system",
+      "read": false,
+      "createdAt": "2026-09-17T02:12:03.936Z"
+    },
+    {
+      "id": "notif_1789611124056",
+      "userId": "usr_1789611123936_k1u4s",
+      "title": "Task Proof Submitted",
+      "message": "Your proof for task \"Automated Verification of Task Persistence\" was submitted successfully. Our compliance team will review your submission.",
+      "type": "task",
+      "read": false,
+      "createdAt": "2026-09-17T02:12:04.055Z"
+    },
+    {
+      "id": "notif_1789611124071",
+      "userId": "usr_1789611123936_k1u4s",
+      "title": "Task Submission Approved",
+      "message": "Your work on \"Automated Verification of Task Persistence\" was approved. $0.12 credited to your wallet.",
+      "type": "task",
+      "read": false,
+      "createdAt": "2026-09-17T02:12:04.069Z"
+    },
+    {
+      "id": "notif_1789611124108",
+      "userId": "usr_1789611123936_k1u4s",
+      "title": "Withdrawal Status Update: Rejected",
+      "message": "Your withdrawal request was rejected. $1 has been refunded to your wallet balance.",
+      "type": "withdrawal",
+      "read": false,
+      "createdAt": "2026-09-17T02:12:04.107Z"
+    },
+    {
+      "id": "notif_1789611124125",
+      "userId": "usr_1789611123936_k1u4s",
+      "title": "Identity Verification Approved",
+      "message": "Your identity has been verified. Withdrawals are enabled.",
+      "type": "security",
+      "read": false,
+      "createdAt": "2026-09-17T02:12:04.126Z"
+    },
+    {
+      "id": "notif_1789611158538",
+      "userId": "usr_1789611158442_4t0jt",
+      "title": "Welcome to NEXVORA GLOBAL",
+      "message": "Explore vetted digital marketing services, verified tasks, and skill certifications.",
+      "type": "system",
+      "read": false,
+      "createdAt": "2026-09-17T02:12:38.442Z"
+    },
+    {
+      "id": "notif_1789611158558",
+      "userId": "usr_1789611158442_4t0jt",
+      "title": "Task Proof Submitted",
+      "message": "Your proof for task \"Test Microtask 1\" was submitted successfully. Our compliance team will review your submission.",
+      "type": "task",
+      "read": false,
+      "createdAt": "2026-09-17T02:12:38.557Z"
+    },
+    {
+      "id": "notif_1789611158574",
+      "userId": "usr_1789611158442_4t0jt",
+      "title": "Task Submission Approved",
+      "message": "Your work on \"Test Microtask 1\" was approved. $0.05 credited to your wallet.",
+      "type": "task",
+      "read": false,
+      "createdAt": "2026-09-17T02:12:38.572Z"
+    },
+    {
+      "id": "notif_1789611158613",
+      "userId": "usr_1789611158442_4t0jt",
+      "title": "Withdrawal Status Update: Rejected",
+      "message": "Your withdrawal request was rejected. $1 has been refunded to your wallet balance.",
+      "type": "withdrawal",
+      "read": false,
+      "createdAt": "2026-09-17T02:12:38.611Z"
+    },
+    {
+      "id": "notif_1789611158631",
+      "userId": "usr_1789611158442_4t0jt",
+      "title": "Identity Verification Approved",
+      "message": "Your identity has been verified. Withdrawals are enabled.",
+      "type": "security",
+      "read": false,
+      "createdAt": "2026-09-17T02:12:38.631Z"
+    },
+    {
+      "id": "notif_1789611158665_n53x",
+      "userId": "usr_1789611158442_4t0jt",
+      "title": "Support Ticket TKT-697930 Update",
+      "message": "Support team has replied to your inquiry: \"Sanity Issue #1789611158636\".",
+      "type": "system",
+      "read": false,
+      "createdAt": "2026-09-17T02:12:38.648Z"
     }
   ],
   "messages": [],
   "reviews": [],
-  "disputes": [],
+  "disputes": [
+    {
+      "id": "ticket_1789586997142_j86oc",
+      "ticketNumber": "TKT-337901",
+      "raisedById": "usr_superadmin_001",
+      "userName": "Super Administrator",
+      "userEmail": "admin@nexvora.global",
+      "subject": "হহ",
+      "description": "মম",
+      "category": "account",
+      "status": "resolved",
+      "replies": [
+        {
+          "id": "rep_1789587032103",
+          "senderName": "Super Administrator",
+          "senderRole": "admin",
+          "message": "ওকে",
+          "createdAt": "2026-09-16T19:30:32.103Z"
+        }
+      ],
+      "createdAt": "2026-09-16T19:29:57.142Z",
+      "updatedAt": "2026-09-16T19:42:42.697Z",
+      "adminReply": "ওকে",
+      "assignedAdminId": "usr_superadmin_001",
+      "resolutionNotes": "Marked resolved via Admin Quick Action."
+    },
+    {
+      "id": "ticket_1789611158638_g1mvn",
+      "ticketNumber": "TKT-697930",
+      "raisedById": "usr_1789611158442_4t0jt",
+      "userName": "Sanity Test Worker",
+      "userEmail": "worker_sanity_1789611158437@example.com",
+      "subject": "Sanity Issue #1789611158636",
+      "description": "Need assistance with payment verification in sanity test.",
+      "category": "Billing & Payouts",
+      "status": "replied",
+      "replies": [
+        {
+          "id": "rep_1789611158648",
+          "senderName": "Super Administrator",
+          "senderRole": "admin",
+          "message": "Support agent response: We have verified your account and resolved the inquiry.",
+          "createdAt": "2026-09-17T02:12:38.648Z"
+        }
+      ],
+      "createdAt": "2026-09-17T02:12:38.638Z",
+      "updatedAt": "2026-09-17T02:12:38.648Z",
+      "adminReply": "Support agent response: We have verified your account and resolved the inquiry.",
+      "assignedAdminId": "usr_superadmin_001"
+    }
+  ],
   "audit_logs": [
+    {
+      "id": "aud_1789611158667_g5on",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "SUPPORT_TICKET_REPLIED",
+      "targetModel": "disputes",
+      "targetId": "ticket_1789611158638_g1mvn",
+      "details": "Replied to TKT-697930. New status: replied",
+      "timestamp": "2026-09-17T02:12:38.667Z"
+    },
+    {
+      "id": "aud_1789611158639_xvf6",
+      "actorId": "usr_1789611158442_4t0jt",
+      "actorEmail": "worker_sanity_1789611158437@example.com",
+      "action": "SUPPORT_TICKET_CREATED",
+      "targetModel": "disputes",
+      "targetId": "ticket_1789611158638_g1mvn",
+      "details": "Created support ticket: TKT-697930",
+      "timestamp": "2026-09-17T02:12:38.639Z"
+    },
+    {
+      "id": "aud_1789611158632_ufcr",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "KYC_REVIEW",
+      "targetModel": "profiles",
+      "targetId": "prof_usr_1789611158442_4t0jt",
+      "details": "Decision: verified. Notes: Approved in sanity check",
+      "timestamp": "2026-09-17T02:12:38.632Z"
+    },
+    {
+      "id": "aud_1789611158622_71d6",
+      "actorId": "usr_1789611158442_4t0jt",
+      "actorEmail": "worker_sanity_1789611158437@example.com",
+      "action": "KYC_SUBMITTED",
+      "targetModel": "profiles",
+      "targetId": "prof_usr_1789611158442_4t0jt",
+      "details": "Submitted National ID Card for identity verification",
+      "timestamp": "2026-09-17T02:12:38.622Z"
+    },
+    {
+      "id": "aud_1789611158613_36ht",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "WITHDRAWAL_STATUS_UPDATE",
+      "targetModel": "withdrawals",
+      "targetId": "wdr_1789611158598_z13y",
+      "details": "Status changed from Pending to Rejected. Ref: N/A",
+      "timestamp": "2026-09-17T02:12:38.613Z"
+    },
+    {
+      "id": "aud_1789611158599_zu80",
+      "actorId": "usr_1789611158442_4t0jt",
+      "actorEmail": "worker_sanity_1789611158437@example.com",
+      "action": "WITHDRAWAL_REQUESTED",
+      "targetModel": "withdrawals",
+      "targetId": "wdr_1789611158598_z13y",
+      "details": "Requested $1 via bKash (Net: $1)",
+      "timestamp": "2026-09-17T02:12:38.600Z"
+    },
+    {
+      "id": "aud_1789611158589_v3n6",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "MANUAL_WALLET_ADJUSTMENT",
+      "targetModel": "wallets",
+      "targetId": "wal_usr_1789611158442_4t0jt",
+      "details": "Adjusted user worker_sanity_1789611158437@example.com by $2. Reason: Sanity test funds",
+      "timestamp": "2026-09-17T02:12:38.589Z"
+    },
+    {
+      "id": "aud_1789611158575_ua86",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "TASK_SUBMISSION_REVIEW",
+      "targetModel": "task_submissions",
+      "targetId": "sub_1789611158557_ii05d",
+      "details": "Decision: approved",
+      "timestamp": "2026-09-17T02:12:38.575Z"
+    },
+    {
+      "id": "aud_1789611158559_6u6h",
+      "actorId": "usr_1789611158442_4t0jt",
+      "actorEmail": "worker_sanity_1789611158437@example.com",
+      "action": "TASK_PROOF_SUBMITTED",
+      "targetModel": "task_submissions",
+      "targetId": "sub_1789611158557_ii05d",
+      "details": "User submitted proof for task \"Test Microtask 1\" (ID: TASK-TEST-001)",
+      "timestamp": "2026-09-17T02:12:38.559Z"
+    },
+    {
+      "id": "aud_1789611158538_4w31",
+      "actorId": "usr_1789611158442_4t0jt",
+      "actorEmail": "worker_sanity_1789611158437@example.com",
+      "action": "USER_REGISTERED",
+      "targetModel": "users",
+      "targetId": "usr_1789611158442_4t0jt",
+      "details": "New user registered account",
+      "timestamp": "2026-09-17T02:12:38.538Z"
+    },
+    {
+      "id": "aud_1789611158425_u6oi",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "USER_LOGIN",
+      "targetModel": "users",
+      "targetId": "usr_superadmin_001",
+      "details": "User signed in successfully",
+      "timestamp": "2026-09-17T02:12:38.425Z"
+    },
+    {
+      "id": "aud_1789611148178_tpdg",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "TASK_PERMANENT_DELETE",
+      "targetModel": "tasks",
+      "targetId": "tsk_1789588228361",
+      "details": "Permanently deleted task \"Automated Verification of Task Persistence\" (Reward: $0.12)",
+      "timestamp": "2026-09-17T02:12:28.178Z"
+    },
+    {
+      "id": "aud_1789611124126_oz0i",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "KYC_REVIEW",
+      "targetModel": "profiles",
+      "targetId": "prof_usr_1789611123936_k1u4s",
+      "details": "Decision: verified. Notes: Approved in sanity check",
+      "timestamp": "2026-09-17T02:12:04.126Z"
+    },
+    {
+      "id": "aud_1789611124117_me1h",
+      "actorId": "usr_1789611123936_k1u4s",
+      "actorEmail": "worker_sanity_1789611123932@example.com",
+      "action": "KYC_SUBMITTED",
+      "targetModel": "profiles",
+      "targetId": "prof_usr_1789611123936_k1u4s",
+      "details": "Submitted National ID Card for identity verification",
+      "timestamp": "2026-09-17T02:12:04.117Z"
+    },
+    {
+      "id": "aud_1789611124109_lowd",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "WITHDRAWAL_STATUS_UPDATE",
+      "targetModel": "withdrawals",
+      "targetId": "wdr_1789611124092_9644",
+      "details": "Status changed from Pending to Rejected. Ref: N/A",
+      "timestamp": "2026-09-17T02:12:04.109Z"
+    },
+    {
+      "id": "aud_1789611124094_orva",
+      "actorId": "usr_1789611123936_k1u4s",
+      "actorEmail": "worker_sanity_1789611123932@example.com",
+      "action": "WITHDRAWAL_REQUESTED",
+      "targetModel": "withdrawals",
+      "targetId": "wdr_1789611124092_9644",
+      "details": "Requested $1 via bKash (Net: $1)",
+      "timestamp": "2026-09-17T02:12:04.094Z"
+    },
+    {
+      "id": "aud_1789611124084_uuv4",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "MANUAL_WALLET_ADJUSTMENT",
+      "targetModel": "wallets",
+      "targetId": "wal_usr_1789611123936_k1u4s",
+      "details": "Adjusted user worker_sanity_1789611123932@example.com by $2. Reason: Sanity test funds",
+      "timestamp": "2026-09-17T02:12:04.084Z"
+    },
+    {
+      "id": "aud_1789611124072_kycl",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "TASK_SUBMISSION_REVIEW",
+      "targetModel": "task_submissions",
+      "targetId": "sub_1789611124055_50zy7",
+      "details": "Decision: approved",
+      "timestamp": "2026-09-17T02:12:04.072Z"
+    },
+    {
+      "id": "aud_1789611124057_4s9p",
+      "actorId": "usr_1789611123936_k1u4s",
+      "actorEmail": "worker_sanity_1789611123932@example.com",
+      "action": "TASK_PROOF_SUBMITTED",
+      "targetModel": "task_submissions",
+      "targetId": "sub_1789611124055_50zy7",
+      "details": "User submitted proof for task \"Automated Verification of Task Persistence\" (ID: tsk_1789588228361)",
+      "timestamp": "2026-09-17T02:12:04.057Z"
+    },
+    {
+      "id": "aud_1789611124034_4nj6",
+      "actorId": "usr_1789611123936_k1u4s",
+      "actorEmail": "worker_sanity_1789611123932@example.com",
+      "action": "USER_REGISTERED",
+      "targetModel": "users",
+      "targetId": "usr_1789611123936_k1u4s",
+      "details": "New user registered account",
+      "timestamp": "2026-09-17T02:12:04.034Z"
+    },
+    {
+      "id": "aud_1789611123917_uy4j",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "USER_LOGIN",
+      "targetModel": "users",
+      "targetId": "usr_superadmin_001",
+      "details": "User signed in successfully",
+      "timestamp": "2026-09-17T02:12:03.917Z"
+    },
+    {
+      "id": "aud_1789611085937_je0o",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "TASK_SUBMISSION_REVIEW",
+      "targetModel": "task_submissions",
+      "targetId": "sub_1789611085924_cqq37",
+      "details": "Decision: approved",
+      "timestamp": "2026-09-17T02:11:25.937Z"
+    },
+    {
+      "id": "aud_1789611085926_opa3",
+      "actorId": "usr_1789611085814_xjb86",
+      "actorEmail": "worker_sanity_1789611085810@example.com",
+      "action": "TASK_PROOF_SUBMITTED",
+      "targetModel": "task_submissions",
+      "targetId": "sub_1789611085924_cqq37",
+      "details": "User submitted proof for task \"Automated Verification of Task Persistence\" (ID: tsk_1789588228361)",
+      "timestamp": "2026-09-17T02:11:25.926Z"
+    },
+    {
+      "id": "aud_1789611085909_epwd",
+      "actorId": "usr_1789611085814_xjb86",
+      "actorEmail": "worker_sanity_1789611085810@example.com",
+      "action": "USER_REGISTERED",
+      "targetModel": "users",
+      "targetId": "usr_1789611085814_xjb86",
+      "details": "New user registered account",
+      "timestamp": "2026-09-17T02:11:25.909Z"
+    },
+    {
+      "id": "aud_1789611085801_ygzv",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "USER_LOGIN",
+      "targetModel": "users",
+      "targetId": "usr_superadmin_001",
+      "details": "User signed in successfully",
+      "timestamp": "2026-09-17T02:11:25.802Z"
+    },
+    {
+      "id": "aud_1789611045936_0vi8",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "TASK_SUBMISSION_REVIEW",
+      "targetModel": "task_submissions",
+      "targetId": "sub_1789611045921_483ii",
+      "details": "Decision: approved",
+      "timestamp": "2026-09-17T02:10:45.936Z"
+    },
+    {
+      "id": "aud_1789611045923_z4kx",
+      "actorId": "usr_1789611045809_zb615",
+      "actorEmail": "worker_sanity_1789611045806@example.com",
+      "action": "TASK_PROOF_SUBMITTED",
+      "targetModel": "task_submissions",
+      "targetId": "sub_1789611045921_483ii",
+      "details": "User submitted proof for task \"Automated Verification of Task Persistence\" (ID: tsk_1789588228361)",
+      "timestamp": "2026-09-17T02:10:45.923Z"
+    },
+    {
+      "id": "aud_1789611045904_1pnz",
+      "actorId": "usr_1789611045809_zb615",
+      "actorEmail": "worker_sanity_1789611045806@example.com",
+      "action": "USER_REGISTERED",
+      "targetModel": "users",
+      "targetId": "usr_1789611045809_zb615",
+      "details": "New user registered account",
+      "timestamp": "2026-09-17T02:10:45.904Z"
+    },
+    {
+      "id": "aud_1789611045796_qnkp",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "USER_LOGIN",
+      "targetModel": "users",
+      "targetId": "usr_superadmin_001",
+      "details": "User signed in successfully",
+      "timestamp": "2026-09-17T02:10:45.796Z"
+    },
+    {
+      "id": "aud_1789611034653_36l7",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "USER_LOGIN",
+      "targetModel": "users",
+      "targetId": "usr_superadmin_001",
+      "details": "User signed in successfully",
+      "timestamp": "2026-09-17T02:10:34.653Z"
+    },
+    {
+      "id": "aud_1789611025235_u1qd",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "USER_LOGIN",
+      "targetModel": "users",
+      "targetId": "usr_superadmin_001",
+      "details": "User signed in successfully",
+      "timestamp": "2026-09-17T02:10:25.235Z"
+    },
+    {
+      "id": "aud_1789588315025_27f4",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "TASK_CREATED",
+      "targetModel": "tasks",
+      "targetId": "TASK-TEST-001",
+      "details": "Created task \"Test Microtask 1\" (+50 Coins)",
+      "timestamp": "2026-09-16T19:51:55.025Z"
+    },
+    {
+      "id": "aud_1789588228361_slv1",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "TASK_CREATED",
+      "targetModel": "tasks",
+      "targetId": "tsk_1789588228361",
+      "details": "Created task \"Automated Verification of Task Persistence\" (+120 Coins)",
+      "timestamp": "2026-09-16T19:50:28.361Z"
+    },
+    {
+      "id": "aud_1789587950416_u1db",
+      "actorId": "usr_1789587950306_bdbrn",
+      "actorEmail": "tester_user_persist@nexvora.global",
+      "action": "USER_REGISTERED",
+      "targetModel": "users",
+      "targetId": "usr_1789587950306_bdbrn",
+      "details": "New user registered account",
+      "timestamp": "2026-09-16T19:45:50.416Z"
+    },
+    {
+      "id": "aud_1789587762698_vpym",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "DISPUTE_STATUS_CHANGE",
+      "targetModel": "disputes",
+      "targetId": "ticket_1789586997142_j86oc",
+      "details": "Status set to resolved",
+      "timestamp": "2026-09-16T19:42:42.698Z"
+    },
+    {
+      "id": "aud_1789587755691_62ek",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "DISPUTE_STATUS_CHANGE",
+      "targetModel": "disputes",
+      "targetId": "ticket_1789586997142_j86oc",
+      "details": "Status set to closed",
+      "timestamp": "2026-09-16T19:42:35.691Z"
+    },
+    {
+      "id": "aud_1789587636691_27mb",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "USER_STATUS_CHANGE",
+      "targetModel": "users",
+      "targetId": "usr_seed_earner_002",
+      "details": "Set status to active. Reason: Administrative review",
+      "timestamp": "2026-09-16T19:40:36.691Z"
+    },
+    {
+      "id": "aud_1789587634494_ohxr",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "USER_STATUS_CHANGE",
+      "targetModel": "users",
+      "targetId": "usr_seed_earner_002",
+      "details": "Set status to banned. Reason: Administrative review",
+      "timestamp": "2026-09-16T19:40:34.494Z"
+    },
+    {
+      "id": "aud_1789587632311_j0ul",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "USER_STATUS_CHANGE",
+      "targetModel": "users",
+      "targetId": "usr_1789095361946_x8xkf",
+      "details": "Set status to active. Reason: Administrative review",
+      "timestamp": "2026-09-16T19:40:32.311Z"
+    },
+    {
+      "id": "aud_1789587630728_mbth",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "USER_STATUS_CHANGE",
+      "targetModel": "users",
+      "targetId": "usr_1789095361946_x8xkf",
+      "details": "Set status to banned. Reason: Administrative review",
+      "timestamp": "2026-09-16T19:40:30.728Z"
+    },
+    {
+      "id": "aud_1789587628433_59ld",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "USER_STATUS_CHANGE",
+      "targetModel": "users",
+      "targetId": "usr_1789095361946_x8xkf",
+      "details": "Set status to active. Reason: Administrative review",
+      "timestamp": "2026-09-16T19:40:28.434Z"
+    },
+    {
+      "id": "aud_1789587625286_961r",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "USER_STATUS_CHANGE",
+      "targetModel": "users",
+      "targetId": "usr_1789095361946_x8xkf",
+      "details": "Set status to banned. Reason: Administrative review",
+      "timestamp": "2026-09-16T19:40:25.286Z"
+    },
+    {
+      "id": "aud_1789587566963_5a1t",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "SERVICE_DELETED",
+      "targetModel": "services",
+      "targetId": "srv_photo_001",
+      "details": "Deleted service \"Background Removal & Bulk Photo Editing\"",
+      "timestamp": "2026-09-16T19:39:26.963Z"
+    },
+    {
+      "id": "aud_1789587032105_2q7c",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "SUPPORT_TICKET_REPLIED",
+      "targetModel": "disputes",
+      "targetId": "ticket_1789586997142_j86oc",
+      "details": "Replied to TKT-337901. New status: replied",
+      "timestamp": "2026-09-16T19:30:32.105Z"
+    },
+    {
+      "id": "aud_1789586997144_wlsd",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "SUPPORT_TICKET_CREATED",
+      "targetModel": "disputes",
+      "targetId": "ticket_1789586997142_j86oc",
+      "details": "Created support ticket: TKT-337901",
+      "timestamp": "2026-09-16T19:29:57.144Z"
+    },
+    {
+      "id": "aud_1789586933231_zsef",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "TASK_SUBMISSION_DELETE",
+      "targetModel": "task_submissions",
+      "targetId": "sub_seed_002",
+      "details": "Permanently deleted submission for \"Monetag স্মার্টলিঙ্ক টাস্ক ১\" (User ID: usr_seed_earner_002)",
+      "timestamp": "2026-09-16T19:28:53.231Z"
+    },
+    {
+      "id": "aud_1789586927106_n9yp",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "TASK_SUBMISSION_DELETE",
+      "targetModel": "task_submissions",
+      "targetId": "sub_seed_001",
+      "details": "Permanently deleted submission for \"Adsterra প্রিমিয়াম স্পন্সরড ভিজিট ১\" (User ID: usr_1789095361946_x8xkf)",
+      "timestamp": "2026-09-16T19:28:47.106Z"
+    },
+    {
+      "id": "aud_1789586894023_hj2b",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "WITHDRAWAL_STATUS_UPDATE",
+      "targetModel": "withdrawals",
+      "targetId": "wd_seed_001",
+      "details": "Status changed from Pending to Rejected. Ref: N/A",
+      "timestamp": "2026-09-16T19:28:14.023Z"
+    },
+    {
+      "id": "aud_1789586892090_q3wk",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "WITHDRAWAL_STATUS_UPDATE",
+      "targetModel": "withdrawals",
+      "targetId": "wd_1789581962118",
+      "details": "Status changed from Pending to Rejected. Ref: N/A",
+      "timestamp": "2026-09-16T19:28:12.090Z"
+    },
+    {
+      "id": "aud_1789586857891_8qrm",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "WITHDRAWAL_STATUS_UPDATE",
+      "targetModel": "withdrawals",
+      "targetId": "wd_seed_003",
+      "details": "Status changed from Pending to Rejected. Ref: N/A",
+      "timestamp": "2026-09-16T19:27:37.891Z"
+    },
+    {
+      "id": "aud_1789586840553_jrug",
+      "actorId": "usr_superadmin_001",
+      "actorEmail": "admin@nexvora.global",
+      "action": "TASK_SUBMISSION_REVIEW",
+      "targetModel": "task_submissions",
+      "targetId": "sub_seed_001",
+      "details": "Decision: rejected",
+      "timestamp": "2026-09-16T19:27:20.553Z"
+    },
     {
       "id": "aud_1789096447009_bqrf",
       "actorId": "usr_1789095361946_x8xkf",
@@ -467,7 +1900,10 @@
       "Payoneer": false,
       "USDT/Crypto": false
     },
-    "updatedAt": "2026-09-08T12:15:36.688Z"
+    "updatedAt": "2026-09-08T12:15:36.688Z",
+    "videoTaskLimit": 10,
+    "videoTaskCooldown": 30,
+    "videoTaskRewardCoins": 5
   },
   "task_completions": [],
   "daily_claims": []

@@ -294,6 +294,9 @@ apiRouter.get('/auth/me', authenticateToken, (req: AuthRequest, res: Response): 
   const wallets = db.getTable('wallets');
   const wallet = wallets.find((w) => w.userId === user.id);
 
+  const availableBalance = wallet?.availableBalance ?? (profile as any)?.balance ?? (user as any)?.balance ?? 0;
+  const points = Math.round(availableBalance * 1000);
+
   res.json({
     user: {
       id: user.id,
@@ -303,9 +306,21 @@ apiRouter.get('/auth/me', authenticateToken, (req: AuthRequest, res: Response): 
       role: user.role,
       status: user.status,
       referralCode: user.referralCode,
+      balance: availableBalance,
+      points,
+      kycStatus: profile?.kycStatus || 'unverified',
     },
-    profile: profile || null,
-    wallet: wallet || null,
+    profile: profile ? { ...profile, balance: availableBalance, points } : null,
+    wallet: wallet || {
+      id: `wal_${user.id}`,
+      userId: user.id,
+      availableBalance,
+      pendingBalance: 0,
+      totalEarned: availableBalance,
+      totalWithdrawn: 0,
+      currency: 'USD',
+      updatedAt: new Date().toISOString(),
+    },
   });
 });
 
@@ -3916,8 +3931,9 @@ apiRouter.get('/support/tickets', optionalAuthenticateToken, (req: AuthRequest, 
 });
 
 apiRouter.post('/support/tickets', optionalAuthenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
-  const { subject, description, category, userName, email } = req.body;
-  if (!subject || !description) {
+  const { subject, description, message, category, userName, email } = req.body;
+  const ticketDesc = (description || message || '').trim();
+  if (!subject || !ticketDesc) {
     res.status(400).json({ error: 'Subject and description are required.' });
     return;
   }
@@ -3932,7 +3948,7 @@ apiRouter.post('/support/tickets', optionalAuthenticateToken, async (req: AuthRe
     userName: submitterName,
     userEmail: submitterEmail,
     subject: String(subject).trim(),
-    description: String(description).trim(),
+    description: ticketDesc,
     category: category || 'account',
     status: 'open',
     replies: [],
@@ -4624,6 +4640,7 @@ apiRouter.post('/admin/tasks', authenticateToken, requireRole(['SUPER ADMIN', 'A
     youtubeVideoId,
     targetUrl,
     totalSlots,
+    slotsRemaining,
     timeLimitMinutes,
     verificationType,
     proofRequirements,
@@ -4637,9 +4654,13 @@ apiRouter.post('/admin/tasks', authenticateToken, requireRole(['SUPER ADMIN', 'A
   const finalRewardCoins = rewardCoins ? Number(rewardCoins) : Math.round(Number(rewardAmount) * 1000);
   const finalRewardAmount = rewardAmount ? Number(rewardAmount) : Number((finalRewardCoins / 1000).toFixed(4));
   const now = new Date().toISOString();
+  const targetId = req.body.id || `tsk_${Date.now()}`;
 
-  const task = db.insert(db.getTable('tasks'), {
-    id: `tsk_${Date.now()}`,
+  const tasksTable = db.getTable('tasks');
+  const existingTask = tasksTable.find((t) => t.id === targetId);
+
+  const taskData = {
+    id: targetId,
     title,
     category: category || 'PTC (Website Visit)',
     description,
@@ -4654,19 +4675,87 @@ apiRouter.post('/admin/tasks', authenticateToken, requireRole(['SUPER ADMIN', 'A
     timerSeconds: timerSeconds ? Number(timerSeconds) : category?.includes('YouTube') ? 45 : 15,
     youtubeVideoId: youtubeVideoId?.trim() || undefined,
     totalSlots: Number(totalSlots) || 100,
-    slotsRemaining: Number(totalSlots) || 100,
+    slotsRemaining: Number(slotsRemaining ?? totalSlots) || 100,
     timeLimitMinutes: Number(timeLimitMinutes) || 15,
     verificationType: verificationType || (category?.includes('YouTube') ? 'youtube_watch' : category?.includes('PTC') ? 'instant_timer' : 'screenshot_and_text'),
     targetUrl: targetUrl && typeof targetUrl === 'string' && targetUrl.trim().length > 0
       ? (targetUrl.trim().startsWith('http') ? targetUrl.trim() : `https://${targetUrl.trim()}`)
       : undefined,
-    status: 'active',
+    status: req.body.status || 'active',
     createdById: req.user!.id,
-    createdAt: now,
-  });
+    createdAt: existingTask?.createdAt || now,
+    updatedAt: now,
+  };
+
+  let task: any;
+  if (existingTask) {
+    task = db.update(tasksTable, targetId, taskData);
+  } else {
+    task = db.insert(tasksTable, taskData);
+  }
+  await db.persist();
 
   await db.logAudit(req.user!.id, req.user!.email, 'TASK_CREATED', 'tasks', task.id, `Created task "${task.title}" (+${finalRewardCoins} Coins)`);
   res.status(201).json({ task });
+});
+
+// Bulk Task Sync between Client, Supabase & Persistent JSON / SQLite DB
+apiRouter.post(['/admin/tasks/sync', '/tasks/sync'], async (req: Request, res: Response): Promise<void> => {
+  try {
+    const rawTasks = Array.isArray(req.body?.tasks) ? req.body.tasks : [req.body];
+    const tasksTable = db.getTable('tasks');
+    let addedOrUpdated = 0;
+
+    for (const t of rawTasks) {
+      if (!t || !t.title) continue;
+      const tid = t.id || `tsk_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      const existingIdx = tasksTable.findIndex((x) => x.id === tid);
+
+      const rAmt = typeof t.rewardAmount === 'number' ? t.rewardAmount : typeof t.reward === 'number' ? t.reward : 0.025;
+      const rCoins = typeof t.rewardCoins === 'number' ? t.rewardCoins : Math.round(rAmt * 1000);
+
+      const sanitizedTask = {
+        id: tid,
+        title: t.title,
+        category: t.category || 'PTC (Website Visit)',
+        description: t.description || t.proofRequirements || t.proof_instructions || 'Complete requirements and verify.',
+        instructions: Array.isArray(t.instructions)
+          ? t.instructions
+          : typeof t.instructions === 'string'
+          ? t.instructions.split('\n').filter(Boolean)
+          : ['Complete task instructions and submit proof.'],
+        proofRequirements: t.proofRequirements || t.proof_instructions || undefined,
+        rewardAmount: rAmt,
+        rewardCoins: rCoins,
+        timerSeconds: Number(t.timerSeconds || t.timer || 15),
+        youtubeVideoId: t.youtubeVideoId || undefined,
+        totalSlots: Number(t.totalSlots || t.slots || 100),
+        slotsRemaining: Number(t.slotsRemaining || t.slots || 100),
+        timeLimitMinutes: Number(t.timeLimitMinutes || 30),
+        verificationType: t.verificationType || 'instant_timer',
+        targetUrl: t.targetUrl || t.link || undefined,
+        status: (t.status === 'inactive' || t.is_active === false ? 'inactive' : 'active') as 'active' | 'inactive',
+        createdById: t.createdById || 'admin',
+        createdAt: t.createdAt || t.created_at || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (existingIdx !== -1) {
+        tasksTable[existingIdx] = { ...tasksTable[existingIdx], ...sanitizedTask };
+      } else {
+        tasksTable.push(sanitizedTask as any);
+      }
+      addedOrUpdated++;
+    }
+
+    if (addedOrUpdated > 0) {
+      await db.persist();
+    }
+
+    res.json({ success: true, count: addedOrUpdated, total: tasksTable.length });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Admin Create Course
@@ -5319,7 +5408,8 @@ apiRouter.get(['/admin/disputes', '/admin/support-tickets'], authenticateToken, 
 
 // Admin Reply & Resolve Support Ticket
 apiRouter.put(['/admin/disputes/:id/reply', '/admin/support-tickets/:id/reply'], authenticateToken, requireRole(['SUPER ADMIN', 'ADMIN', 'SUPPORT ADMIN', 'MODERATOR']), async (req: AuthRequest, res: Response): Promise<void> => {
-  const { replyMessage, status = 'replied', resolutionNotes } = req.body;
+  const replyText = req.body.replyMessage || req.body.reply || req.body.message;
+  const { status = 'replied', resolutionNotes } = req.body;
   const dispute = db.findById(db.getTable('disputes'), req.params.id);
   if (!dispute) {
     res.status(404).json({ error: 'Support ticket not found.' });
@@ -5327,8 +5417,8 @@ apiRouter.put(['/admin/disputes/:id/reply', '/admin/support-tickets/:id/reply'],
   }
 
   const now = new Date().toISOString();
-  if (replyMessage && typeof replyMessage === 'string' && replyMessage.trim()) {
-    const trimmedReply = replyMessage.trim();
+  if (replyText && typeof replyText === 'string' && replyText.trim()) {
+    const trimmedReply = replyText.trim();
     dispute.adminReply = trimmedReply;
     if (!dispute.replies) dispute.replies = [];
     dispute.replies.push({
