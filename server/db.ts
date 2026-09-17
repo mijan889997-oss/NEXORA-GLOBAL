@@ -278,6 +278,45 @@ class DatabaseEngine {
           ];
         }
 
+        // Ensure registered super admins exist in users table
+        if (!parsed.users.some((u: any) => u.email?.toLowerCase() === 'admin@nexvora.global')) {
+          parsed.users.unshift({
+            id: 'usr_superadmin_001',
+            email: 'admin@nexvora.global',
+            passwordHash: '$2a$10$X7vQ4oEw1zF5oXp8YqMKeOg8h7Z8q2v7M5n9K8y0a1b2c3d4e5f6',
+            fullName: 'Super Administrator',
+            username: 'superadmin',
+            phone: '+18005550199',
+            role: 'SUPER ADMIN',
+            status: 'active',
+            referralCode: 'NEXVORA_FOUNDER',
+            emailVerified: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+        }
+        if (!parsed.users.some((u: any) => u.email?.toLowerCase() === 'mijan889997@gmail.com')) {
+          parsed.users.unshift({
+            id: 'usr_superadmin_mijan',
+            email: 'mijan889997@gmail.com',
+            passwordHash: '$2a$10$X7vQ4oEw1zF5oXp8YqMKeOg8h7Z8q2v7M5n9K8y0a1b2c3d4e5f6',
+            fullName: 'Mijan Admin',
+            username: 'mijan_admin',
+            phone: '+8801700000000',
+            role: 'SUPER ADMIN',
+            status: 'active',
+            referralCode: 'MIJAN_ADMIN',
+            emailVerified: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+        }
+        const existingMijan = parsed.users.find((u: any) => u.email?.toLowerCase() === 'mijan889997@gmail.com');
+        if (existingMijan) {
+          existingMijan.role = 'SUPER ADMIN';
+          existingMijan.status = 'active';
+        }
+
         // Ensure registered seed users exist
         if (!parsed.users.some((u: any) => u.email === 'elena.rostova@nexvora.com')) {
           parsed.users.push({

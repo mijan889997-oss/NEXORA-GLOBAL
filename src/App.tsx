@@ -235,7 +235,11 @@ function AppContent() {
       }
 
       const isAuthorized = Boolean(
-        user && (user.email === 'admin@nexvora.global' || isAdmin || user.role === 'SUPER ADMIN')
+        user &&
+          (user.email?.toLowerCase() === 'admin@nexvora.global' ||
+            user.email?.toLowerCase() === 'mijan889997@gmail.com' ||
+            isAdmin ||
+            user.role === 'SUPER ADMIN')
       );
 
       if (!isAuthorized) {

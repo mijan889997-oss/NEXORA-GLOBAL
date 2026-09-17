@@ -85,7 +85,11 @@ interface AdminPanelProps {
 export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
   const { user, apiFetch, isAdmin } = useAuth();
   const isAuthorized = Boolean(
-    user && (user.email === 'admin@nexvora.global' || isAdmin || user.role === 'SUPER ADMIN')
+    user &&
+      (user.email?.toLowerCase() === 'admin@nexvora.global' ||
+        user.email?.toLowerCase() === 'mijan889997@gmail.com' ||
+        isAdmin ||
+        user.role === 'SUPER ADMIN')
   );
 
   useEffect(() => {
@@ -694,6 +698,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
     window.addEventListener('withdrawals_updated', handleSync);
     window.addEventListener('storage', handleSync);
 
+    // Auto-poll every 6 seconds so user registrations and task submissions immediately appear in admin panel
+    const livePollTimer = setInterval(() => {
+      fetchAdminData();
+    }, 6000);
+
     // Supabase Real-time subscriptions for instant live syncing
     const unsubMicro = subscribeToMicrotasks(() => {
       console.log('[Supabase Realtime] Microtasks table changed. Syncing UI...');
@@ -717,6 +726,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ navigate }) => {
     });
 
     return () => {
+      clearInterval(livePollTimer);
+      window.removeEventListener('users_updated', handleSync);
       window.removeEventListener('tasks_updated', handleSync);
       window.removeEventListener('submissions_updated', handleSync);
       window.removeEventListener('tickets_updated', handleSync);

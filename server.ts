@@ -34,6 +34,9 @@ async function bootstrap() {
   const app = express();
   const PORT = 3000;
 
+  // Enable reverse proxy support for correct client IP detection in container environment
+  app.set('trust proxy', true);
+
   // Security & CORS
   app.disable('x-powered-by');
   app.use((req, res, next) => {
@@ -47,7 +50,10 @@ async function bootstrap() {
       res.setHeader('Access-Control-Allow-Credentials', 'true');
     }
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      'Content-Type, Authorization, X-Requested-With, x-user-id, x-user-email, x-user-role, x-admin-key, x-admin-token'
+    );
 
     if (req.method === 'OPTIONS') {
       res.sendStatus(204);
