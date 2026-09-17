@@ -10,6 +10,7 @@ import { LandingPage } from './views/LandingPage';
 import { AuthPages } from './views/AuthPages';
 import { PublicMarketplace } from './views/PublicMarketplace';
 import { DashboardView } from './views/dashboard/DashboardView';
+import { Web3MatrixView } from './views/matrix/Web3MatrixView';
 import { AdminPanel } from './views/admin/AdminPanel';
 import { LegalPages } from './views/LegalPages';
 import { RefreshCw, AlertTriangle, Lock, ShieldAlert } from 'lucide-react';
@@ -106,18 +107,18 @@ function AppContent() {
     if (typeof window !== 'undefined') {
       const pathname = window.location.pathname;
       if (!pathname || pathname === '/' || pathname === '/home') {
-        return '/dashboard/earn';
+        return '/dashboard/matrix';
       }
       return pathname;
     }
-    return '/dashboard/earn';
+    return '/dashboard/matrix';
   });
 
   useEffect(() => {
     const handlePopState = () => {
       const pathname = window.location.pathname;
       if (!pathname || pathname === '/' || pathname === '/home') {
-        setCurrentPath('/dashboard/earn');
+        setCurrentPath('/dashboard/matrix');
       } else {
         setCurrentPath(pathname);
       }
@@ -132,13 +133,21 @@ function AppContent() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const cleanPath = (currentPath || '/dashboard/matrix').split('?')[0];
+
   // Route matching logic
   const renderRoute = () => {
-    const cleanPath = (currentPath || '/dashboard/earn').split('?')[0];
-
-    // Landing / Home route redirects to /dashboard/earn
+    // Landing / Home route directs to /dashboard/matrix
     if (cleanPath === '/' || cleanPath === '' || cleanPath === '/home') {
-      return <DashboardView currentSubpath="earn" navigate={navigate} />;
+      return (
+        <Web3MatrixView 
+          initialTab="main"
+          navigate={navigate}
+          onViewLeaderboard={() => navigate('/dashboard/leaderboard')}
+          onNavigateToTeam={() => navigate('/dashboard/team')}
+          onNavigateToPartnerCard={() => navigate('/dashboard/partner-card')}
+        />
+      );
     }
     if (cleanPath === '/landing') {
       return <LandingPage navigate={navigate} />;
@@ -215,11 +224,48 @@ function AppContent() {
     if (cleanPath === '/notifications') {
       return <DashboardView currentSubpath="notifications" navigate={navigate} />;
     }
+    if (cleanPath === '/leaderboard' || cleanPath === '/top-earners') {
+      return <DashboardView currentSubpath="leaderboard" navigate={navigate} />;
+    }
+    if (
+      cleanPath === '/matrix' ||
+      cleanPath === '/web3-matrix' ||
+      cleanPath === '/levels' ||
+      cleanPath === '/matrix-levels'
+    ) {
+      return (
+        <Web3MatrixView 
+          initialTab="levels"
+          navigate={navigate}
+          onViewLeaderboard={() => navigate('/dashboard/leaderboard')}
+          onNavigateToTeam={() => navigate('/dashboard/team')}
+          onNavigateToPartnerCard={() => navigate('/dashboard/partner-card')}
+        />
+      );
+    }
+    if (cleanPath === '/team' || cleanPath === '/team-tree') {
+      return <DashboardView currentSubpath="team" navigate={navigate} />;
+    }
+    if (cleanPath === '/partner-card' || cleanPath === '/partner-flyer') {
+      return <DashboardView currentSubpath="partner-card" navigate={navigate} />;
+    }
 
     // Dashboard nested subpaths
     if (cleanPath.startsWith('/dashboard')) {
       const parts = cleanPath.split('/').filter(Boolean);
-      const subpath = parts[1] || 'earn';
+      const subpath = parts[1] || 'matrix';
+      
+      if (subpath === 'matrix' || subpath === 'levels' || subpath === 'web3-matrix') {
+        return (
+          <Web3MatrixView 
+            initialTab="levels"
+            navigate={navigate}
+            onViewLeaderboard={() => navigate('/dashboard/leaderboard')}
+            onNavigateToTeam={() => navigate('/dashboard/team')}
+            onNavigateToPartnerCard={() => navigate('/dashboard/partner-card')}
+          />
+        );
+      }
       return <DashboardView currentSubpath={subpath} navigate={navigate} />;
     }
 
@@ -270,21 +316,25 @@ function AppContent() {
     return <DashboardView currentSubpath="earn" navigate={navigate} />;
   };
 
+  const isMatrixView = ['/matrix', '/web3-matrix', '/levels', '/matrix-levels', '/dashboard', '/dashboard/matrix'].includes(cleanPath);
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-['Plus_Jakarta_Sans'] antialiased">
       {/* Mandatory Statutory Earnings & Compliance Notice Banner */}
-      <LegalNoticeBanner />
+      {!isMatrixView && <LegalNoticeBanner />}
 
       {/* Global Responsive Navigation */}
-      <Navbar currentPath={currentPath} navigate={navigate} />
+      {!isMatrixView && <Navbar currentPath={currentPath} navigate={navigate} />}
 
       {/* Main Routed Content */}
       <main className="flex-1">
         {renderRoute()}
       </main>
 
-      {/* Global Comprehensive Footer with Full Legal Disclosures */}
-      <Footer navigate={navigate} />
+      {/* Global Comprehensive Footer with Full Legal Disclosures (Hidden on Matrix View) */}
+      {!isMatrixView && (
+        <Footer navigate={navigate} />
+      )}
     </div>
   );
 }

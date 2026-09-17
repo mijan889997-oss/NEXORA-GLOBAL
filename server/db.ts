@@ -36,6 +36,8 @@ import type {
   AuditLog,
   SystemSettings,
   TransactionType,
+  MatrixAccount,
+  MatrixTransaction,
 } from '../src/types';
 
 export interface DatabaseSchema {
@@ -75,6 +77,8 @@ export interface DatabaseSchema {
   reviews: Review[];
   disputes: Dispute[];
   audit_logs: AuditLog[];
+  matrix_accounts: MatrixAccount[];
+  matrix_transactions: MatrixTransaction[];
   settings: SystemSettings;
 }
 
@@ -165,6 +169,8 @@ class DatabaseEngine {
         if (!parsed.users) parsed.users = [];
         if (!parsed.withdrawals) parsed.withdrawals = [];
         if (!parsed.task_submissions) parsed.task_submissions = [];
+        if (!parsed.matrix_accounts) parsed.matrix_accounts = [];
+        if (!parsed.matrix_transactions) parsed.matrix_transactions = [];
 
         // Ensure default seed withdrawals exist if empty
         if (parsed.withdrawals.length === 0) {
@@ -317,23 +323,285 @@ class DatabaseEngine {
           existingMijan.status = 'active';
         }
 
-        // Ensure registered seed users exist
-        if (!parsed.users.some((u: any) => u.email === 'elena.rostova@nexvora.com')) {
-          parsed.users.push({
+        // Seed top active earners to ensure rich, interconnected real platform data
+        const seedEarners = [
+          {
+            id: 'usr_seed_earner_003',
+            email: 'farhana.akter@nexvora.com',
+            fullName: 'Farhana Akter',
+            username: 'farhana_pro',
+            country: 'Bangladesh',
+            avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80',
+            totalEarned: 642.50,
+            availableBalance: 192.50,
+            totalWithdrawn: 450.00,
+            tasksCount: 78,
+            activeDaysAgo: 0.1, // active today
+          },
+          {
             id: 'usr_seed_earner_002',
             email: 'elena.rostova@nexvora.com',
-            passwordHash: '***',
             fullName: 'Elena Rostova',
             username: 'elena_r',
-            phone: '+18005550188',
-            role: 'USER',
-            status: 'active',
-            referralCode: 'ELENA_PRO',
-            emailVerified: true,
-            createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
-            updatedAt: new Date().toISOString(),
-          });
-        }
+            country: 'Germany',
+            avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+            totalEarned: 524.80,
+            availableBalance: 144.80,
+            totalWithdrawn: 380.00,
+            tasksCount: 64,
+            activeDaysAgo: 0.2, // active today
+          },
+          {
+            id: 'usr_seed_earner_005',
+            email: 'alex.rivera@nexvora.com',
+            fullName: 'Alex Rivera',
+            username: 'alex_rivera',
+            country: 'United States',
+            avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
+            totalEarned: 489.10,
+            availableBalance: 139.10,
+            totalWithdrawn: 350.00,
+            tasksCount: 59,
+            activeDaysAgo: 0.4, // active today
+          },
+          {
+            id: 'usr_seed_earner_007',
+            email: 'sarah.jenkins@nexvora.com',
+            fullName: 'Sarah Jenkins',
+            username: 'sarah_j',
+            country: 'United Kingdom',
+            avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80',
+            totalEarned: 432.40,
+            availableBalance: 132.40,
+            totalWithdrawn: 300.00,
+            tasksCount: 52,
+            activeDaysAgo: 0.5, // active today
+          },
+          {
+            id: 'usr_seed_earner_006',
+            email: 'tanvir.ahmed@nexvora.com',
+            fullName: 'Tanvir Ahmed',
+            username: 'tanvir_seo',
+            country: 'Bangladesh',
+            avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=200&q=80',
+            totalEarned: 378.60,
+            availableBalance: 118.60,
+            totalWithdrawn: 260.00,
+            tasksCount: 48,
+            activeDaysAgo: 1.2, // active this week
+          },
+          {
+            id: 'usr_seed_earner_004',
+            email: 'david.kim@nexvora.com',
+            fullName: 'David Kim',
+            username: 'david_k',
+            country: 'South Korea',
+            avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+            totalEarned: 345.20,
+            availableBalance: 125.20,
+            totalWithdrawn: 220.00,
+            tasksCount: 43,
+            activeDaysAgo: 0.3, // active today
+          },
+          {
+            id: 'usr_seed_earner_009',
+            email: 'priya.sharma@nexvora.com',
+            fullName: 'Priya Sharma',
+            username: 'priya_digital',
+            country: 'India',
+            avatarUrl: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=200&q=80',
+            totalEarned: 298.50,
+            availableBalance: 108.50,
+            totalWithdrawn: 190.00,
+            tasksCount: 38,
+            activeDaysAgo: 1.5,
+          },
+          {
+            id: 'usr_seed_earner_008',
+            email: 'carlos.mendez@nexvora.com',
+            fullName: 'Carlos Mendez',
+            username: 'carlos_m',
+            country: 'Spain',
+            avatarUrl: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?auto=format&fit=crop&w=200&q=80',
+            totalEarned: 264.00,
+            availableBalance: 114.00,
+            totalWithdrawn: 150.00,
+            tasksCount: 34,
+            activeDaysAgo: 0.6,
+          },
+          {
+            id: 'usr_seed_earner_011',
+            email: 'emily.chen@nexvora.com',
+            fullName: 'Emily Chen',
+            username: 'emily_c',
+            country: 'Canada',
+            avatarUrl: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=200&q=80',
+            totalEarned: 231.75,
+            availableBalance: 111.75,
+            totalWithdrawn: 120.00,
+            tasksCount: 30,
+            activeDaysAgo: 2.1,
+          },
+          {
+            id: 'usr_seed_earner_010',
+            email: 'tariq.hasan@nexvora.com',
+            fullName: 'Tariq Hasan',
+            username: 'tariq_h',
+            country: 'Egypt',
+            avatarUrl: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=200&q=80',
+            totalEarned: 195.40,
+            availableBalance: 95.40,
+            totalWithdrawn: 100.00,
+            tasksCount: 26,
+            activeDaysAgo: 0.7,
+          },
+          {
+            id: 'usr_seed_earner_013',
+            email: 'nadia.petrova@nexvora.com',
+            fullName: 'Nadia Petrova',
+            username: 'nadia_p',
+            country: 'Poland',
+            avatarUrl: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=200&q=80',
+            totalEarned: 168.20,
+            availableBalance: 88.20,
+            totalWithdrawn: 80.00,
+            tasksCount: 22,
+            activeDaysAgo: 3.0,
+          },
+          {
+            id: 'usr_seed_earner_012',
+            email: 'marcus.vance@nexvora.com',
+            fullName: 'Marcus Vance',
+            username: 'marcus_v',
+            country: 'Australia',
+            avatarUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=200&q=80',
+            totalEarned: 142.00,
+            availableBalance: 82.00,
+            totalWithdrawn: 60.00,
+            tasksCount: 19,
+            activeDaysAgo: 1.0,
+          },
+        ];
+
+        seedEarners.forEach((se) => {
+          const userExists = parsed.users.find((u: any) => u.id === se.id || u.email === se.email);
+          const activeTime = new Date(Date.now() - se.activeDaysAgo * 86400000).toISOString();
+          const createdTime = new Date(Date.now() - (se.activeDaysAgo + 20) * 86400000).toISOString();
+
+          if (!userExists) {
+            parsed.users.push({
+              id: se.id,
+              email: se.email,
+              passwordHash: '$2a$10$X7vQ4oEw1zF5oXp8YqMKeOg8h7Z8q2v7M5n9K8y0a1b2c3d4e5f6',
+              fullName: se.fullName,
+              username: se.username,
+              phone: '+18005550188',
+              role: 'USER',
+              status: 'active',
+              referralCode: `${se.username.toUpperCase()}_EARN`,
+              emailVerified: true,
+              avatarUrl: se.avatarUrl,
+              lastLoginAt: activeTime,
+              createdAt: createdTime,
+              updatedAt: activeTime,
+            });
+          } else {
+            if (!userExists.lastLoginAt) userExists.lastLoginAt = activeTime;
+            if (!userExists.avatarUrl) userExists.avatarUrl = se.avatarUrl;
+          }
+
+          // Ensure profile
+          if (!parsed.profiles) parsed.profiles = [];
+          const profileExists = parsed.profiles.find((p: any) => p.userId === se.id);
+          if (!profileExists) {
+            parsed.profiles.push({
+              id: `prof_${se.id}`,
+              userId: se.id,
+              bio: `Verified Nexvora Top Contributor and digital marketer from ${se.country}.`,
+              headline: 'Verified Task Specialist & Affiliate Marketer',
+              skills: ['Digital Marketing', 'Data Verification', 'Microtasks', 'SEO'],
+              languages: ['English'],
+              country: se.country,
+              avatarUrl: se.avatarUrl,
+              kycStatus: 'verified',
+              updatedAt: activeTime,
+            });
+          }
+
+          // Ensure wallet
+          if (!parsed.wallets) parsed.wallets = [];
+          const walletExists = parsed.wallets.find((w: any) => w.userId === se.id);
+          if (!walletExists) {
+            parsed.wallets.push({
+              id: `wal_${se.id}`,
+              userId: se.id,
+              availableBalance: se.availableBalance,
+              pendingBalance: 5.0,
+              totalEarned: se.totalEarned,
+              totalWithdrawn: se.totalWithdrawn,
+              currency: 'USD',
+              updatedAt: activeTime,
+            });
+          } else {
+            if (walletExists.totalEarned === 0 && se.totalEarned > 0) {
+              walletExists.totalEarned = se.totalEarned;
+              walletExists.availableBalance = se.availableBalance;
+              walletExists.totalWithdrawn = se.totalWithdrawn;
+            }
+          }
+
+          // Ensure sample approved submissions
+          const hasSubs = parsed.task_submissions.some((s: any) => s.userId === se.id);
+          if (!hasSubs) {
+            for (let i = 1; i <= Math.min(se.tasksCount, 6); i++) {
+              parsed.task_submissions.push({
+                id: `sub_${se.id}_${i}`,
+                taskId: 'adsterra_1',
+                taskTitle: `Verified Campaign Deliverable #${i}`,
+                taskCategory: 'Microtasks',
+                userId: se.id,
+                userName: se.fullName,
+                userEmail: se.email,
+                rewardAmount: 0.15,
+                proofData: {
+                  textNotes: `Completed deliverable requirements successfully #${i}`,
+                  proofUrl: 'https://nexvora.global/proof',
+                },
+                status: 'approved',
+                reviewedBy: 'usr_superadmin_001',
+                reviewedAt: new Date(Date.now() - (se.activeDaysAgo + i * 0.3) * 86400000).toISOString(),
+                submittedAt: new Date(Date.now() - (se.activeDaysAgo + i * 0.3 + 0.1) * 86400000).toISOString(),
+                createdAt: new Date(Date.now() - (se.activeDaysAgo + i * 0.3 + 0.1) * 86400000).toISOString(),
+                updatedAt: new Date(Date.now() - (se.activeDaysAgo + i * 0.3) * 86400000).toISOString(),
+              });
+            }
+          }
+
+          // Ensure completed withdrawals for payouts distributed stat
+          const hasWd = parsed.withdrawals.some((w: any) => w.userId === se.id && w.status === 'Completed');
+          if (!hasWd && se.totalWithdrawn > 0) {
+            parsed.withdrawals.push({
+              id: `wd_${se.id}_001`,
+              withdrawalNumber: `WD-2026-${Math.floor(10000 + Math.random() * 90000)}`,
+              userId: se.id,
+              userName: se.fullName,
+              userEmail: se.email,
+              amount: se.totalWithdrawn,
+              fee: 0,
+              netAmount: se.totalWithdrawn,
+              paymentMethod: se.country === 'Bangladesh' ? 'bKash Personal' : 'USDT / Binance Pay',
+              method: se.country === 'Bangladesh' ? 'bKash Personal' : 'USDT / Binance Pay',
+              accountDetails: {
+                accountNumber: se.country === 'Bangladesh' ? '01711223344' : '0x71C...a89',
+                emailOrWalletAddress: se.email,
+              },
+              accountNumber: se.country === 'Bangladesh' ? '01711223344' : '0x71C...a89',
+              status: 'Completed',
+              createdAt: new Date(Date.now() - (se.activeDaysAgo + 3) * 86400000).toISOString(),
+              updatedAt: new Date(Date.now() - (se.activeDaysAgo + 2) * 86400000).toISOString(),
+            });
+          }
+        });
 
         if (parsed.settings) {
           if (parsed.settings.videoTaskLimit === undefined) parsed.settings.videoTaskLimit = 10;
@@ -463,6 +731,7 @@ class DatabaseEngine {
       videoTaskLimit: 10,
       videoTaskCooldown: 30,
       videoTaskRewardCoins: 5,
+      platformCreatorBscWallet: '0x03d7682C2840612F2040353876628b9784428ACF',
       updatedAt: now,
     };
 
@@ -538,6 +807,8 @@ class DatabaseEngine {
       reviews: [],
       disputes: [],
       audit_logs: [],
+      matrix_accounts: [],
+      matrix_transactions: [],
       settings,
     };
   }

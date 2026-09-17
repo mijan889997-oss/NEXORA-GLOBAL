@@ -30,7 +30,28 @@ import type {
   Proposal,
 } from '../src/types';
 
+import {
+  MATRIX_LEVEL_CONFIG,
+  getOrCreateMatrixAccount,
+  activateMatrixAccount,
+  upgradeMatrixLevel,
+  activateMatrixAccountOnChain,
+  upgradeMatrixLevelOnChain,
+  bindUserWallet,
+  getP2PRouteDetails,
+  getBnbUsdPrice,
+  simulatePartnerSlot,
+  ensureSeedMatrixAccounts,
+  getMatrixTeamTree,
+  getMatrixLiveFeed,
+  GENESIS_PROTOCOL_RESERVE_WALLET,
+  isValidEvmAddress,
+} from './matrix';
+
 export const apiRouter = Router();
+
+// Ensure seed matrix accounts are initialized in database
+ensureSeedMatrixAccounts().catch((err) => console.warn('Matrix seed warning:', err));
 
 // In-Memory Rate Limiting Guard - relaxed to never falsely throttle legitimate requests in reverse proxy
 function createRateLimiter(_limit: number, _windowMs: number) {
@@ -239,9 +260,8 @@ apiRouter.post('/auth/login', authLimiter, async (req, res): Promise<void> => {
           userId: user.id,
           bio: 'Platform System Administrator',
           skills: ['Platform Operations', 'Security & Compliance', 'Finance Oversight'],
+          languages: ['English', 'Bengali'],
           kycStatus: 'verified',
-          points: 50000,
-          balance: 100.0,
           updatedAt: new Date().toISOString(),
         });
       }
@@ -379,6 +399,539 @@ apiRouter.get('/auth/me', authenticateToken, (req: AuthRequest, res: Response): 
 });
 
 // ==========================================
+// 1.5. PUBLIC PLATFORM STATS & TOP EARNERS LEADERBOARD
+// ==========================================
+
+apiRouter.get('/public/stats', (req: Request, res: Response): void => {
+  try {
+    const users = db.getTable('users') || [];
+    const nonBannedUsers = users.filter((u) => u.status !== 'banned');
+    const totalUsers = nonBannedUsers.length;
+
+    const now = Date.now();
+    const oneDayAgo = now - 24 * 60 * 60 * 1000;
+
+    const submissions = db.getTable('task_submissions') || [];
+    const completions = db.getTable('task_completions') || [];
+    const dailyClaims = db.getTable('daily_claims') || [];
+    const transactions = db.getTable('transactions') || [];
+    const withdrawals = db.getTable('withdrawals') || [];
+    const matrixAccounts = db.getTable('matrix_accounts') || [];
+
+    // Joined today (last 24 hours)
+    const joinedToday = nonBannedUsers.filter(
+      (u) => new Date(u.createdAt || 0).getTime() >= oneDayAgo
+    ).length;
+
+    // Collect distinct active user IDs in the last 24 hours
+    const activeUserIds = new Set<string>();
+    nonBannedUsers.forEach((u) => {
+      const lastLogin = u.lastLoginAt ? new Date(u.lastLoginAt).getTime() : 0;
+      const updated = u.updatedAt ? new Date(u.updatedAt).getTime() : 0;
+      const created = u.createdAt ? new Date(u.createdAt).getTime() : 0;
+      if (lastLogin >= oneDayAgo || updated >= oneDayAgo || created >= oneDayAgo) {
+        activeUserIds.add(u.id);
+      }
+    });
+
+    submissions.forEach((s) => {
+      const time = new Date(s.submittedAt || s.createdAt || 0).getTime();
+      if (time >= oneDayAgo && s.userId) activeUserIds.add(s.userId);
+    });
+
+    completions.forEach((c) => {
+      const time = new Date(c.completedAt || 0).getTime();
+      if (time >= oneDayAgo && c.userId) activeUserIds.add(c.userId);
+    });
+
+    dailyClaims.forEach((d) => {
+      const time = new Date((d as any).createdAt || (d as any).claimDate || 0).getTime();
+      if (time >= oneDayAgo && (d as any).userId) activeUserIds.add((d as any).userId);
+    });
+
+    transactions.forEach((t) => {
+      const time = new Date(t.createdAt || 0).getTime();
+      if (time >= oneDayAgo && t.userId) activeUserIds.add(t.userId);
+    });
+
+    // Total microtasks completed
+    const approvedSubmissions = submissions.filter((s) => s.status === 'approved');
+    const totalTasksCompleted = approvedSubmissions.length + completions.length;
+
+    // Total payouts distributed (sum of approved/completed withdrawals)
+    const approvedWithdrawals = withdrawals.filter(
+      (w) => w.status === 'Approved' || w.status === 'Completed'
+    );
+    const totalPayoutsDistributed = approvedWithdrawals.reduce(
+      (acc, w) => acc + (Number(w.amount) || 0),
+      0
+    );
+
+    // Total Matrix network commissions & activations
+    const activatedMatrixAccounts = matrixAccounts.filter((a) => a.isActivated);
+    const totalMatrixActivations = activatedMatrixAccounts.length;
+
+    const totalMatrixCommissions = matrixAccounts.reduce(
+      (acc, a) => acc + (Number(a.totalMatrixEarned) || 0),
+      0
+    );
+
+    // Sum of all commission transactions from transactions table
+    const commissionTxs = transactions.filter(
+      (t) => t.type === 'Commission' || t.type === 'Referral Reward'
+    );
+    const totalNetworkCommission = Math.max(
+      totalMatrixCommissions,
+      commissionTxs.reduce((acc, t) => acc + (Number(t.amount) || 0), 0)
+    );
+
+    // Total payouts volume = approved withdrawals + instant wallet commissions
+    const totalPayoutsVolume = totalPayoutsDistributed + totalNetworkCommission;
+
+    const matrixTxs = db.getTable('matrix_transactions') || [];
+    const totalMatrixVolumeFromTxs = matrixTxs.reduce((acc, t) => acc + (Number(t.amountUsd) || 0), 0);
+
+    const totalMatrixVolume = Math.max(
+      totalMatrixVolumeFromTxs,
+      matrixAccounts.reduce((acc, a) => {
+        const levelVolume = (a.levels || []).reduce((lvlAcc, l) => lvlAcc + (l.unlocked ? l.cost : 0), 0);
+        return acc + (a.isActivated ? 2 : 0) + levelVolume;
+      }, 0)
+    );
+
+    const activeCount = activeUserIds.size;
+
+    res.json({
+      success: true,
+      totalUsers,
+      joinedToday,
+      activeMembersToday: activeCount,
+      totalTasksCompleted,
+      totalPayoutsDistributed: Number(totalPayoutsDistributed.toFixed(2)),
+      totalNetworkCommission: Number(totalNetworkCommission.toFixed(2)),
+      totalPayoutsVolume: Number(totalPayoutsVolume.toFixed(2)),
+      totalMatrixActivations,
+      totalMatrixVolume: Number(totalMatrixVolume.toFixed(2)),
+      currency: 'USD',
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to calculate platform statistics.' });
+  }
+});
+
+apiRouter.get('/public/leaderboard', (req: Request, res: Response): void => {
+  try {
+    const period = (req.query.period as string) || 'all_time'; // 'today' | 'weekly' | 'all_time'
+    const filterType = (req.query.filterType as string) || 'all'; // 'all' | 'matrix' | 'tasks'
+    const limit = Math.min(parseInt((req.query.limit as string) || '20', 10), 50);
+
+    const now = Date.now();
+    const oneDayAgo = now - 24 * 60 * 60 * 1000;
+    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+
+    const users = (db.getTable('users') || []).filter((u) => u.status !== 'banned');
+    const wallets = db.getTable('wallets') || [];
+    const profiles = db.getTable('profiles') || [];
+    const submissions = db.getTable('task_submissions') || [];
+    const completions = db.getTable('task_completions') || [];
+    const transactions = db.getTable('transactions') || [];
+    const matrixAccounts = db.getTable('matrix_accounts') || [];
+
+    const leaderboardItems = users.map((user) => {
+      const wallet = wallets.find((w) => w.userId === user.id);
+      const profile = profiles.find((p) => p.userId === user.id);
+      const matrixAccount = matrixAccounts.find((m) => m.userId === user.id);
+
+      const userApprovedSubs = submissions.filter((s) => s.userId === user.id && s.status === 'approved');
+      const userCompletions = completions.filter((c) => c.userId === user.id);
+      const userTransactions = transactions.filter((t) => t.userId === user.id);
+
+      let earned = 0;
+      let completedTasksCount = 0;
+
+      const matrixLevel = matrixAccount?.currentMaxLevel || 0;
+      const matrixCommissions = matrixAccount?.totalMatrixEarned || 0;
+      const recycleCycles = matrixAccount?.totalRecycles || 0;
+      const upgradeRewards = (matrixAccount?.levels || []).reduce(
+        (acc, l) => acc + (l.unlocked ? l.cost : 0),
+        0
+      );
+
+      if (period === 'today') {
+        const todaySubs = userApprovedSubs.filter(
+          (s) => new Date(s.reviewedAt || s.submittedAt || 0).getTime() >= oneDayAgo
+        );
+        const todayComps = userCompletions.filter(
+          (c) => new Date(c.completedAt || 0).getTime() >= oneDayAgo
+        );
+        completedTasksCount = todaySubs.length + todayComps.length;
+
+        const todayTx = userTransactions.filter(
+          (t) =>
+            new Date(t.createdAt || 0).getTime() >= oneDayAgo &&
+            (t.type === 'Earning' || t.type === 'Commission' || t.type === 'Referral Reward')
+        );
+
+        const todayMatrixTxs = (db.getTable('matrix_transactions') || []).filter(
+          (t) => (t.toUserId === user.id) && new Date(t.timestamp).getTime() >= oneDayAgo
+        );
+        const todayMatrixEarned = todayMatrixTxs.reduce((acc, t) => acc + (Number(t.amountUsd) || 0), 0);
+
+        if (todayTx.length > 0 || todayMatrixEarned > 0) {
+          earned = todayTx.reduce((acc, t) => acc + (Number(t.amount) || 0), 0) + todayMatrixEarned;
+        } else {
+          earned = todaySubs.reduce((acc, s) => acc + (Number(s.rewardAmount) || 0), 0);
+        }
+      } else if (period === 'weekly') {
+        const weekSubs = userApprovedSubs.filter(
+          (s) => new Date(s.reviewedAt || s.submittedAt || 0).getTime() >= sevenDaysAgo
+        );
+        const weekComps = userCompletions.filter(
+          (c) => new Date(c.completedAt || 0).getTime() >= sevenDaysAgo
+        );
+        completedTasksCount = weekSubs.length + weekComps.length;
+
+        const weekTx = userTransactions.filter(
+          (t) =>
+            new Date(t.createdAt || 0).getTime() >= sevenDaysAgo &&
+            (t.type === 'Earning' || t.type === 'Commission' || t.type === 'Referral Reward')
+        );
+
+        const weekMatrixTxs = (db.getTable('matrix_transactions') || []).filter(
+          (t) => (t.toUserId === user.id) && new Date(t.timestamp).getTime() >= sevenDaysAgo
+        );
+        const weekMatrixEarned = weekMatrixTxs.reduce((acc, t) => acc + (Number(t.amountUsd) || 0), 0);
+
+        if (weekTx.length > 0 || weekMatrixEarned > 0) {
+          earned = weekTx.reduce((acc, t) => acc + (Number(t.amount) || 0), 0) + weekMatrixEarned;
+        } else {
+          earned = weekSubs.reduce((acc, s) => acc + (Number(s.rewardAmount) || 0), 0);
+        }
+      } else {
+        // all_time - strictly genuine total
+        completedTasksCount = userApprovedSubs.length + userCompletions.length;
+        const taskAndGeneralEarned = wallet ? Number(wallet.totalEarned || wallet.availableBalance || 0) : 0;
+        earned = matrixCommissions + taskAndGeneralEarned;
+        if (earned === 0 && userApprovedSubs.length > 0) {
+          earned = userApprovedSubs.reduce((acc, s) => acc + (Number(s.rewardAmount) || 0), 0);
+        }
+      }
+
+      // Points: 1000 Points = $1.00 USD
+      const points = Math.round(earned * 1000);
+
+      // Safe Avatar URL
+      const avatarUrl =
+        profile?.avatarUrl ||
+        user.avatarUrl ||
+        `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(user.username || user.fullName)}`;
+
+      const displayName = user.fullName || user.username || 'Nexvora Earner';
+      const partnerCount = users.filter(
+        (u) => u.referredBy === user.id || (user.referralCode && u.referredBy === user.referralCode)
+      ).length;
+
+      return {
+        userId: user.id,
+        name: displayName,
+        username: user.username ? `@${user.username}` : undefined,
+        avatarUrl,
+        country: profile?.country || 'Global',
+        partnerCount,
+        completedTasks: completedTasksCount,
+        totalEarned: Number(earned.toFixed(2)),
+        points,
+        matrixLevel,
+        matrixCommissions: Number(matrixCommissions.toFixed(2)),
+        upgradeRewards: Number(upgradeRewards.toFixed(2)),
+        recycleCycles,
+      };
+    });
+
+    if (filterType === 'matrix') {
+      leaderboardItems.sort(
+        (a, b) =>
+          b.matrixCommissions - a.matrixCommissions ||
+          b.matrixLevel - a.matrixLevel ||
+          b.recycleCycles - a.recycleCycles ||
+          b.points - a.points
+      );
+    } else if (filterType === 'tasks') {
+      leaderboardItems.sort(
+        (a, b) => b.completedTasks - a.completedTasks || b.points - a.points
+      );
+    } else {
+      leaderboardItems.sort(
+        (a, b) =>
+          b.points - a.points ||
+          b.matrixCommissions - a.matrixCommissions ||
+          b.totalEarned - a.totalEarned ||
+          b.completedTasks - a.completedTasks
+      );
+    }
+
+    const topEarners = leaderboardItems.slice(0, limit).map((item, idx) => {
+      const rank = idx + 1;
+      let badgeType: 'gold' | 'silver' | 'bronze' | 'top10' | 'contributor' = 'contributor';
+      let crownLabel = '';
+
+      if (rank === 1) {
+        badgeType = 'gold';
+        crownLabel = 'Crown Champion';
+      } else if (rank === 2) {
+        badgeType = 'silver';
+        crownLabel = 'Elite Runner-Up';
+      } else if (rank === 3) {
+        badgeType = 'bronze';
+        crownLabel = 'Master Earner';
+      } else if (rank <= 10) {
+        badgeType = 'top10';
+        crownLabel = 'Top 10 Contributor';
+      }
+
+      return {
+        rank,
+        ...item,
+        badgeType,
+        crownLabel,
+      };
+    });
+
+    res.json({
+      success: true,
+      period,
+      filterType,
+      totalParticipants: leaderboardItems.length,
+      topEarners,
+      updatedAt: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch leaderboard.' });
+  }
+});
+
+// ==========================================
+// 1.6. WEB3 12-LEVEL MATRIX ENGINE API ($2 ACTIVATION)
+// ==========================================
+
+// Get all 12 level specs ($3 to $6,000)
+apiRouter.get('/matrix/levels', (_req: Request, res: Response): void => {
+  res.json({
+    success: true,
+    activationFee: 2.0,
+    levels: MATRIX_LEVEL_CONFIG,
+  });
+});
+
+// Bind User's connected Web3 Wallet (TokenPocket / MetaMask on BNB Chain)
+apiRouter.post('/matrix/bind-wallet', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { walletAddress, chainId } = req.body || {};
+    if (!walletAddress) {
+      res.status(400).json({ error: 'Valid EVM walletAddress is required.' });
+      return;
+    }
+
+    const { account } = await bindUserWallet(req.user!.id, walletAddress, chainId ? parseInt(chainId, 10) : 56);
+    res.json({
+      success: true,
+      message: `Wallet ${walletAddress.substring(0, 6)}...${walletAddress.substring(38)} successfully verified and bound on BNB Chain.`,
+      account,
+      walletAddress: account.walletAddress,
+    });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message || 'Failed to bind Web3 wallet.' });
+  }
+});
+
+// Query P2P Direct Route details for $2 Activation or Level Upgrade
+apiRouter.get('/matrix/p2p-route', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const type = (req.query.type as 'activation' | 'upgrade') || 'activation';
+    const level = parseInt((req.query.level as string) || '1', 10);
+    const isTestnet = req.query.network === 'testnet';
+
+    const routeDetails = await getP2PRouteDetails(req.user!.id, type, level, isTestnet);
+    res.json({
+      success: true,
+      route: routeDetails,
+    });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message || 'Failed to fetch P2P routing details.' });
+  }
+});
+
+// Get current user's matrix account details
+apiRouter.get('/matrix/account', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const account = await getOrCreateMatrixAccount(req.user!.id);
+    const wallet = db.getTable('wallets').find((w) => w.userId === req.user!.id);
+    const bnbPrice = await getBnbUsdPrice();
+
+    res.json({
+      success: true,
+      account,
+      bnbPrice,
+      walletBalance: wallet?.availableBalance || 0,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to load Web3 Matrix account.' });
+  }
+});
+
+// Activate $2.00 Matrix Account ($1 to upline sponsor, $1 to platform reserve)
+// Supports direct BNB Chain On-Chain TxHash execution
+apiRouter.post('/matrix/activate', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { txHash, fromWallet, currency = 'BNB', network } = req.body || {};
+    const isTestnet = network === 'testnet';
+
+    if (txHash && fromWallet) {
+      // 100% Genuine On-Chain Blockchain Execution via Connected Wallet
+      const { account, matrixTx } = await activateMatrixAccountOnChain({
+        userId: req.user!.id,
+        txHash,
+        fromWallet,
+        currency,
+        isTestnet,
+      });
+
+      res.json({
+        success: true,
+        message: `Web3 Matrix Account successfully activated on BNB Chain! $1.00 routed to upline, $1.00 platform reserve.`,
+        account,
+        matrixTx,
+        txHash: matrixTx.txHash,
+        bscScanUrl: matrixTx.bscScanUrl,
+      });
+      return;
+    }
+
+    // Fallback: Internal Wallet balance activation
+    const { account, transaction } = await activateMatrixAccount(req.user!.id, false);
+    const wallet = db.getTable('wallets').find((w) => w.userId === req.user!.id);
+
+    res.json({
+      success: true,
+      message: 'Web3 Matrix Account successfully activated for $2.00! $1.00 paid to your upline sponsor, $1.00 platform reserve.',
+      account,
+      transaction,
+      walletBalance: wallet?.availableBalance || 0,
+    });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message || 'Failed to activate Web3 Matrix Account.' });
+  }
+});
+
+// Upgrade / Purchase Level ($3 to $6,000)
+// Supports direct BNB Chain On-Chain TxHash execution
+apiRouter.post('/matrix/upgrade', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const level = parseInt(req.body.level, 10);
+    if (isNaN(level) || level < 1 || level > 12) {
+      res.status(400).json({ error: 'Valid matrix level number (1-12) is required.' });
+      return;
+    }
+
+    const { txHash, fromWallet, currency = 'BNB', network } = req.body || {};
+    const isTestnet = network === 'testnet';
+
+    if (txHash && fromWallet) {
+      // 100% Genuine On-Chain Blockchain Execution via Connected Wallet
+      const { account, matrixTx } = await upgradeMatrixLevelOnChain({
+        userId: req.user!.id,
+        targetLevel: level,
+        txHash,
+        fromWallet,
+        currency,
+        isTestnet,
+      });
+
+      res.json({
+        success: true,
+        message: `Level ${level} (${MATRIX_LEVEL_CONFIG[level - 1].title}) activated on BNB Chain! 100% direct P2P commission confirmed.`,
+        account,
+        matrixTx,
+        txHash: matrixTx.txHash,
+        bscScanUrl: matrixTx.bscScanUrl,
+      });
+      return;
+    }
+
+    // Fallback: Internal Wallet balance purchase
+    const { account, transaction } = await upgradeMatrixLevel(req.user!.id, level);
+    const wallet = db.getTable('wallets').find((w) => w.userId === req.user!.id);
+
+    res.json({
+      success: true,
+      message: `Level ${level} (${MATRIX_LEVEL_CONFIG[level - 1].title}) successfully activated for $${MATRIX_LEVEL_CONFIG[level - 1].cost.toFixed(2)}!`,
+      account,
+      transaction,
+      walletBalance: wallet?.availableBalance || 0,
+    });
+  } catch (err: any) {
+    res.status(400).json({ error: err.message || 'Matrix level upgrade failed.' });
+  }
+});
+
+// Interactive Matrix Downline Team Tree Visualizer (Upline, Current User, Direct Partners, Spillovers)
+apiRouter.get('/matrix/team', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const treeData = await getMatrixTeamTree(req.user!.id);
+    res.json({
+      success: true,
+      data: treeData,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to load team tree data.' });
+  }
+});
+
+// Global Live Matrix Activity Feed (payouts, level upgrades, auto-recycles, activations)
+apiRouter.get('/matrix/live-feed', (req: Request, res: Response): void => {
+  try {
+    const activities = getMatrixLiveFeed();
+    res.json({
+      success: true,
+      activities,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to load live activity feed.' });
+  }
+});
+
+// User's Direct Matrix P2P Transactions History Ledger
+apiRouter.get('/matrix/transactions', authenticateToken, (req: AuthRequest, res: Response): void => {
+  try {
+    const userId = req.user!.id;
+    const allMatrixTxs = db.getTable('matrix_transactions') || [];
+    const allUsers = db.getTable('users') || [];
+
+    const userTxs = allMatrixTxs
+      .filter((tx) => tx.fromUserId === userId || tx.toUserId === userId)
+      .map((tx) => {
+        const fromUser = allUsers.find((u) => u.id === tx.fromUserId);
+        const toUser = allUsers.find((u) => u.id === tx.toUserId);
+        return {
+          ...tx,
+          fromUserName: fromUser?.fullName || fromUser?.username || 'Partner',
+          toUserName: toUser?.fullName || toUser?.username || 'Upline',
+          isIncome: tx.toUserId === userId,
+        };
+      })
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    res.json({
+      success: true,
+      transactions: userTxs,
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to load matrix transactions.' });
+  }
+});
+
+// ==========================================
 // 2. USER PROFILE & DASHBOARD
 // ==========================================
 
@@ -413,28 +966,75 @@ apiRouter.get('/user/dashboard-stats', authenticateToken, (req: AuthRequest, res
 apiRouter.put('/user/profile', authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
   const userId = req.user!.id;
   const profiles = db.getTable('profiles');
-  const existing = profiles.find((p) => p.userId === userId);
+  const users = db.getTable('users');
+  const existingProfile = profiles.find((p) => p.userId === userId);
+  const existingUser = users.find((u) => u.id === userId);
 
-  const { bio, headline, skills, country, city, languages, website, linkedin, github } = req.body;
+  const {
+    fullName,
+    displayName,
+    phone,
+    whatsapp,
+    telegramUsername,
+    telegram,
+    avatarUrl,
+    bio,
+    headline,
+    skills,
+    country,
+    city,
+    languages,
+    website,
+    linkedin,
+    github,
+  } = req.body;
 
-  if (existing) {
-    const updated = db.update(profiles, existing.id, {
-      bio: bio !== undefined ? bio : existing.bio,
-      headline: headline !== undefined ? headline : existing.headline,
-      skills: Array.isArray(skills) ? skills : existing.skills,
-      country: country !== undefined ? country : existing.country,
-      city: city !== undefined ? city : existing.city,
-      languages: Array.isArray(languages) ? languages : existing.languages,
-      website: website !== undefined ? website : existing.website,
-      linkedin: linkedin !== undefined ? linkedin : existing.linkedin,
-      github: github !== undefined ? github : existing.github,
+  const targetFullName = fullName || displayName || existingUser?.fullName;
+  const targetPhone = phone !== undefined ? phone : (existingUser?.phone || '');
+  const targetWhatsapp = whatsapp !== undefined ? whatsapp : (existingUser?.whatsapp || '');
+  const targetTelegram = telegramUsername || telegram || existingUser?.telegramUsername || '';
+  const targetAvatar = avatarUrl !== undefined ? avatarUrl : existingUser?.avatarUrl;
+
+  // Update User table
+  let updatedUser = existingUser;
+  if (existingUser) {
+    updatedUser = db.update(users, existingUser.id, {
+      fullName: targetFullName,
+      phone: targetPhone,
+      whatsapp: targetWhatsapp,
+      telegramUsername: targetTelegram,
+      avatarUrl: targetAvatar,
       updatedAt: new Date().toISOString(),
     });
-    res.json({ profile: updated });
+  }
+
+  // Update Profile table
+  let updatedProfile;
+  if (existingProfile) {
+    updatedProfile = db.update(profiles, existingProfile.id, {
+      phone: targetPhone,
+      whatsapp: targetWhatsapp,
+      telegramUsername: targetTelegram,
+      avatarUrl: targetAvatar,
+      bio: bio !== undefined ? bio : existingProfile.bio,
+      headline: headline !== undefined ? headline : existingProfile.headline,
+      skills: Array.isArray(skills) ? skills : existingProfile.skills,
+      country: country !== undefined ? country : existingProfile.country,
+      city: city !== undefined ? city : existingProfile.city,
+      languages: Array.isArray(languages) ? languages : existingProfile.languages,
+      website: website !== undefined ? website : existingProfile.website,
+      linkedin: linkedin !== undefined ? linkedin : existingProfile.linkedin,
+      github: github !== undefined ? github : existingProfile.github,
+      updatedAt: new Date().toISOString(),
+    });
   } else {
-    const created = db.insert(profiles, {
+    updatedProfile = db.insert(profiles, {
       id: `prof_${userId}`,
       userId,
+      phone: targetPhone,
+      whatsapp: targetWhatsapp,
+      telegramUsername: targetTelegram,
+      avatarUrl: targetAvatar,
       bio: bio || '',
       headline: headline || '',
       skills: skills || [],
@@ -447,8 +1047,15 @@ apiRouter.put('/user/profile', authenticateToken, async (req: AuthRequest, res: 
       kycStatus: 'unsubmitted',
       updatedAt: new Date().toISOString(),
     });
-    res.json({ profile: created });
   }
+
+  await db.persist();
+
+  res.json({
+    success: true,
+    user: updatedUser,
+    profile: updatedProfile,
+  });
 });
 
 apiRouter.post(['/user/kyc', '/user/kyc/submit'], authenticateToken, async (req: AuthRequest, res: Response): Promise<void> => {
@@ -4045,6 +4652,7 @@ apiRouter.get('/settings/public', (req, res): void => {
     earningsDisclaimer: s.earningsDisclaimer,
     minWithdrawalUsd: s.minWithdrawalUsd,
     platformFeePercent: s.platformFeePercent,
+    platformCreatorBscWallet: s.platformCreatorBscWallet || GENESIS_PROTOCOL_RESERVE_WALLET,
   });
 });
 
@@ -4290,21 +4898,35 @@ apiRouter.get(['/admin/verifications', '/admin/kyc'], ...adminOnly, (req: AuthRe
 
   const enriched = pending.map((p) => {
     const user = users.find((u) => u.id === p.userId);
+    const docType = p.kycDocumentType || 'NID';
+    const docNum = p.kycDocumentNumber || 'DOC-123456';
+    const notes = p.kycNotes || '';
+    const status = p.kycStatus || 'pending';
     return {
+      id: p.userId || p.id,
       profileId: p.id,
       userId: p.userId,
       userName: user?.fullName || 'Member',
+      fullName: user?.fullName || 'Member',
+      username: user?.username || 'user',
       userEmail: user?.email || '',
-      documentType: p.kycDocumentType || 'NID',
-      documentNumber: p.kycDocumentNumber || 'DOC-123456',
-      submittedAt: p.kycSubmittedAt || p.updatedAt,
-      notes: p.kycNotes,
-      status: p.kycStatus,
-      kycStatus: p.kycStatus,
+      documentType: docType,
+      documentNumber: docNum,
+      submittedAt: p.kycSubmittedAt || p.updatedAt || new Date().toISOString(),
+      notes,
+      status,
+      kycStatus: status,
+      profile: {
+        kycDocumentType: docType,
+        kycDocumentNumber: docNum,
+        kycNotes: notes,
+        kycStatus: status,
+      },
+      documents: [docNum],
     };
   });
 
-  res.json({ verifications: enriched, kycList: enriched });
+  res.json({ verifications: enriched, kycList: enriched, kycRequests: enriched, data: enriched });
 });
 
 apiRouter.all(
@@ -4688,12 +5310,17 @@ apiRouter.put('/admin/payment-gateways/:id', authenticateToken, requireRole(['SU
 // Admin System Settings
 apiRouter.get('/admin/settings', ...adminOnly, (req: AuthRequest, res: Response): void => {
   const s = db.getTable('settings');
-  res.json({ settings: s });
+  res.json({
+    settings: {
+      ...s,
+      platformCreatorBscWallet: s.platformCreatorBscWallet || GENESIS_PROTOCOL_RESERVE_WALLET,
+    },
+  });
 });
 
 apiRouter.put('/admin/settings', authenticateToken, requireRole(['SUPER ADMIN', 'ADMIN']), async (req: AuthRequest, res: Response): Promise<void> => {
   const s = db.getTable('settings') as any;
-  const { platformFeePercent, minWithdrawalUsd, requireKycForWithdrawal, maintenanceMode, earningsDisclaimer, supportEmail, videoTaskLimit, videoTaskCooldown, videoTaskRewardCoins } = req.body;
+  const { platformFeePercent, minWithdrawalUsd, requireKycForWithdrawal, maintenanceMode, earningsDisclaimer, supportEmail, videoTaskLimit, videoTaskCooldown, videoTaskRewardCoins, platformCreatorBscWallet } = req.body;
 
   if (platformFeePercent !== undefined) s.platformFeePercent = Number(platformFeePercent);
   if (minWithdrawalUsd !== undefined) s.minWithdrawalUsd = Number(minWithdrawalUsd);
@@ -4704,6 +5331,13 @@ apiRouter.put('/admin/settings', authenticateToken, requireRole(['SUPER ADMIN', 
   if (videoTaskLimit !== undefined) s.videoTaskLimit = Math.max(1, Number(videoTaskLimit));
   if (videoTaskCooldown !== undefined) s.videoTaskCooldown = Math.max(0, Number(videoTaskCooldown));
   if (videoTaskRewardCoins !== undefined) s.videoTaskRewardCoins = Math.max(1, Number(videoTaskRewardCoins));
+  if (platformCreatorBscWallet !== undefined) {
+    if (platformCreatorBscWallet && !isValidEvmAddress(platformCreatorBscWallet)) {
+      res.status(400).json({ error: 'Invalid EVM/BSC wallet address for platform creator/fee wallet.' });
+      return;
+    }
+    s.platformCreatorBscWallet = platformCreatorBscWallet;
+  }
   s.updatedAt = new Date().toISOString();
 
   await db.persist();
@@ -4713,7 +5347,7 @@ apiRouter.put('/admin/settings', authenticateToken, requireRole(['SUPER ADMIN', 
     'SYSTEM_SETTINGS_UPDATE',
     'settings',
     s.id,
-    'Updated platform financial, compliance, and video task settings'
+    `Updated platform financial, compliance, and video task settings${platformCreatorBscWallet ? ` (Creator Wallet: ${platformCreatorBscWallet})` : ''}`
   );
 
   res.json({ success: true, settings: s });

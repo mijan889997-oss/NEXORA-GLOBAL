@@ -14,16 +14,12 @@ import {
   LogOut,
   ChevronDown,
   Sparkles,
-  BookOpen,
-  Briefcase,
-  Layers,
-  CheckSquare,
-  Package,
-  FileQuestion,
-  Flame,
+  Zap,
+  Users,
+  Trophy,
+  Share2,
   ExternalLink,
 } from 'lucide-react';
-import { KWORK_AFFILIATE_URL, FREECASH_AFFILIATE_URL } from '../config/affiliateLinks';
 
 interface NavbarProps {
   currentPath: string;
@@ -44,101 +40,132 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate }) => {
   };
 
   return (
-    <header className="sticky top-0 z-40 backdrop-blur-md bg-slate-950/85 border-b border-slate-800/80 transition-colors">
+    <header className="sticky top-0 z-40 backdrop-blur-xl bg-slate-950/90 border-b border-cyan-500/20 transition-colors shadow-lg shadow-black/40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Brand */}
           <div className="flex items-center gap-3">
             <button
               id="nav-brand-btn"
-              onClick={() => handleNav('/')}
+              onClick={() => handleNav('/dashboard/matrix')}
               className="flex items-center gap-2.5 text-left group focus:outline-none"
             >
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-cyan-900/20 group-hover:scale-105 transition-transform">
-                <Globe className="w-5 h-5 animate-pulse" />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 via-emerald-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-transform border border-cyan-400/30">
+                <Zap className="w-5 h-5 text-white animate-pulse" />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
                   <span className="font-extrabold tracking-tight text-lg text-white font-['Space_Grotesk']">
                     NEXVORA
                   </span>
-                  <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800/50">
-                    GLOBAL
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cyan-950/80 text-cyan-300 border border-cyan-500/40">
+                    WEB3 MATRIX
                   </span>
                 </div>
-                <p className="text-[10px] text-slate-400 font-medium tracking-wider uppercase">
-                  Learn • Work • Grow • Earn
+                <p className="text-[9px] text-emerald-400/80 font-mono tracking-wider uppercase">
+                  100% P2P • BNB CHAIN
                 </p>
               </div>
             </button>
           </div>
 
-          {/* Desktop Nav Links */}
-          <nav className="hidden md:flex items-center gap-1 lg:gap-2 text-sm font-medium text-slate-300">
+          {/* Desktop Nav Links - Pure Web3 Matrix Navigation */}
+          <nav className="hidden md:flex items-center gap-1 lg:gap-1.5 text-xs font-semibold text-slate-300">
             <button
-              id="nav-earn"
-              onClick={() => handleNav('/dashboard/earn')}
-              className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 ${
-                currentPath === '/earn' || currentPath === '/dashboard/earn'
-                  ? 'text-amber-400 bg-slate-900'
-                  : 'hover:text-white hover:bg-slate-900/60'
+              id="nav-matrix-levels"
+              onClick={() => handleNav('/dashboard/matrix')}
+              className={`px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 ${
+                currentPath === '/matrix' || currentPath === '/levels' || currentPath === '/dashboard/matrix' || currentPath === '/dashboard/levels'
+                  ? 'text-cyan-300 bg-cyan-950/60 border border-cyan-500/40 shadow-sm shadow-cyan-900/30'
+                  : 'hover:text-white hover:bg-slate-900/80'
               }`}
             >
-              <Flame className="w-4 h-4 text-amber-400 animate-pulse" />
-              <span>Earn / Micro-Tasks</span>
-              <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                HOT
+              <Zap className="w-3.5 h-3.5 text-cyan-400" />
+              <span>12-Level Matrix</span>
+              <span className="px-1.5 py-0.2 rounded text-[8px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                $2
               </span>
             </button>
+
+            <button
+              id="nav-team-tree"
+              onClick={() => handleNav('/dashboard/team')}
+              className={`px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 ${
+                currentPath === '/team' || currentPath === '/dashboard/team'
+                  ? 'text-cyan-300 bg-cyan-950/60 border border-cyan-500/40'
+                  : 'hover:text-white hover:bg-slate-900/80'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Team Tree</span>
+              <span className="px-1.5 py-0.2 rounded text-[8px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                1x3
+              </span>
+            </button>
+
+            <button
+              id="nav-leaderboard"
+              onClick={() => handleNav('/dashboard/leaderboard')}
+              className={`px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 ${
+                currentPath === '/leaderboard' || currentPath === '/dashboard/leaderboard'
+                  ? 'text-amber-300 bg-amber-950/60 border border-amber-500/40'
+                  : 'hover:text-white hover:bg-slate-900/80'
+              }`}
+            >
+              <Trophy className="w-3.5 h-3.5 text-amber-400" />
+              <span>Top Earners</span>
+              <span className="px-1.5 py-0.2 rounded text-[8px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                LIVE
+              </span>
+            </button>
+
+            <button
+              id="nav-partner-card"
+              onClick={() => handleNav('/dashboard/partner-card')}
+              className={`px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 ${
+                currentPath === '/partner-card' || currentPath === '/dashboard/partner-card'
+                  ? 'text-purple-300 bg-purple-950/60 border border-purple-500/40'
+                  : 'hover:text-white hover:bg-slate-900/80'
+              }`}
+            >
+              <Share2 className="w-3.5 h-3.5 text-purple-400" />
+              <span>Partner Card & QR</span>
+            </button>
+
+            <button
+              id="nav-wallet-ledger"
+              onClick={() => handleNav('/dashboard/wallet')}
+              className={`px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 ${
+                currentPath === '/wallet' || currentPath === '/dashboard/wallet'
+                  ? 'text-emerald-300 bg-emerald-950/60 border border-emerald-500/40'
+                  : 'hover:text-white hover:bg-slate-900/80'
+              }`}
+            >
+              <Wallet className="w-3.5 h-3.5 text-emerald-400" />
+              <span>P2P Ledger</span>
+            </button>
+
             <a
-              id="nav-tasks"
-              href={FREECASH_AFFILIATE_URL}
+              id="nav-bscscan-link"
+              href="https://bscscan.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 text-slate-300 hover:text-white hover:bg-slate-900/60"
+              className="px-2.5 py-2 rounded-xl transition-all flex items-center gap-1 text-slate-400 hover:text-cyan-300 text-[11px]"
+              title="Verify transactions on BscScan"
             >
-              <CheckSquare className="w-4 h-4 text-emerald-400" />
-              <span>Verified Paid Tasks</span>
-              <ExternalLink className="w-3 h-3 opacity-60 text-slate-400" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="font-mono">BNB Chain</span>
+              <ExternalLink className="w-3 h-3 opacity-60" />
             </a>
-            <button
-              id="nav-courses"
-              onClick={() => handleNav('/courses')}
-              className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 ${
-                currentPath === '/courses' ? 'text-cyan-400 bg-slate-900' : 'hover:text-white hover:bg-slate-900/60'
-              }`}
-            >
-              <BookOpen className="w-4 h-4 text-amber-400" />
-              <span>Academy Courses</span>
-            </button>
-            <button
-              id="nav-products"
-              onClick={() => handleNav('/products')}
-              className={`px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5 ${
-                currentPath === '/products' ? 'text-cyan-400 bg-slate-900' : 'hover:text-white hover:bg-slate-900/60'
-              }`}
-            >
-              <Package className="w-4 h-4 text-purple-400" />
-              <span>Products</span>
-            </button>
-            <button
-              id="nav-compliance"
-              onClick={() => handleNav('/earnings-disclaimer')}
-              className={`px-3 py-2 rounded-lg transition-colors text-xs ${
-                currentPath === '/earnings-disclaimer' ? 'text-cyan-400 bg-slate-900' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Compliance
-            </button>
           </nav>
 
           {/* User Controls & Theme Toggle */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <button
               id="theme-toggle-btn"
               onClick={toggleTheme}
               aria-label="Toggle visual theme"
-              className="p-2 rounded-lg border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-900 transition-colors"
+              className="p-2 rounded-xl border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-900 transition-colors"
             >
               {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
@@ -149,34 +176,31 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate }) => {
                 <button
                   id="nav-wallet-pill"
                   onClick={() => handleNav('/dashboard/wallet')}
-                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-800/60 text-emerald-400 text-xs font-semibold hover:bg-emerald-900/40 transition-colors"
-                  title="Your Available Wallet Balance & Points"
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-900/40 transition-colors"
+                  title="Your Available Wallet Balance"
                 >
                   <Wallet className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>${formattedUsd}</span>
-                  <span className="text-[10px] text-emerald-300 font-mono bg-emerald-900/50 px-1.5 py-0.5 rounded border border-emerald-700/40">
-                    {formattedPoints} pts
-                  </span>
+                  <span className="font-mono font-bold">${formattedUsd}</span>
                 </button>
 
                 {/* Dashboard button */}
                 <button
                   id="nav-goto-dashboard"
-                  onClick={() => handleNav('/dashboard/earn')}
-                  className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white flex items-center gap-1.5 shadow-sm transition-colors"
+                  onClick={() => handleNav('/dashboard/matrix')}
+                  className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white flex items-center gap-1.5 shadow-md shadow-cyan-950/50 transition-all border border-cyan-400/30"
                 >
-                  <LayoutDashboard className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Earn</span> Dashboard
+                  <Zap className="w-3.5 h-3.5 text-white" />
+                  <span className="hidden sm:inline">Matrix</span> Dashboard
                 </button>
 
                 {isAdmin && (
                   <button
                     id="nav-goto-admin"
                     onClick={() => handleNav('/admin')}
-                    className="px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-purple-600 hover:bg-purple-500 text-white flex items-center gap-1.5 shadow-sm transition-colors"
+                    className="px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-purple-600 hover:bg-purple-500 text-white flex items-center gap-1.5 shadow-sm transition-colors border border-purple-400/30"
                   >
                     <Shield className="w-3.5 h-3.5" />
-                    <span className="hidden md:inline">Super</span> Admin
+                    <span className="hidden md:inline">Admin</span>
                   </button>
                 )}
 
@@ -185,59 +209,76 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate }) => {
                   <button
                     id="nav-user-menu-btn"
                     onClick={() => setDropdownOpen(!dropdownOpen)}
-                    className="flex items-center gap-1.5 p-1.5 rounded-lg hover:bg-slate-900 text-slate-300 transition-colors"
+                    className="flex items-center gap-1.5 p-1.5 rounded-xl hover:bg-slate-900 text-slate-300 transition-colors border border-slate-800"
                   >
-                    <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-cyan-400">
-                      {user.fullName.charAt(0).toUpperCase()}
+                    <div className="w-7 h-7 rounded-full bg-cyan-950 border border-cyan-500/50 flex items-center justify-center text-xs font-bold text-cyan-300 font-mono">
+                      {user.fullName?.charAt(0)?.toUpperCase() || 'W'}
                     </div>
                     <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                   </button>
 
                   {dropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-56 rounded-xl bg-slate-900 border border-slate-800 shadow-2xl py-2 z-50 text-sm">
-                      <div className="px-4 py-2 border-b border-slate-800">
-                        <p className="font-semibold text-white truncate">{user.fullName}</p>
-                        <p className="text-xs text-slate-400 truncate">{user.email}</p>
-                        <span className="inline-block mt-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-slate-800 text-cyan-300">
+                    <div className="absolute right-0 mt-2 w-60 rounded-2xl bg-slate-950/95 backdrop-blur-xl border border-cyan-500/30 shadow-2xl py-2 z-50 text-xs">
+                      <div className="px-4 py-2 border-b border-slate-800/80">
+                        <p className="font-bold text-white truncate">{user.fullName}</p>
+                        <p className="text-[11px] text-cyan-400 font-mono truncate">@{user.username}</p>
+                        <span className="inline-block mt-1 text-[9px] font-mono px-2 py-0.5 rounded bg-slate-900 text-emerald-300 border border-slate-800">
                           {user.role}
                         </span>
                       </div>
                       <button
-                        onClick={() => handleNav('/dashboard/profile')}
-                        className="w-full text-left px-4 py-2 text-slate-300 hover:bg-slate-800 hover:text-white"
+                        onClick={() => handleNav('/dashboard/matrix')}
+                        className="w-full text-left px-4 py-2.5 text-slate-300 hover:bg-cyan-950/40 hover:text-cyan-300 flex items-center gap-2"
                       >
-                        Profile & KYC
+                        <Zap className="w-3.5 h-3.5 text-cyan-400" />
+                        12-Level Matrix ($2)
+                      </button>
+                      <button
+                        onClick={() => handleNav('/dashboard/team')}
+                        className="w-full text-left px-4 py-2.5 text-slate-300 hover:bg-cyan-950/40 hover:text-cyan-300 flex items-center gap-2"
+                      >
+                        <Users className="w-3.5 h-3.5 text-emerald-400" />
+                        Team Tree (1x3 Slots)
+                      </button>
+                      <button
+                        onClick={() => handleNav('/dashboard/partner-card')}
+                        className="w-full text-left px-4 py-2.5 text-slate-300 hover:bg-cyan-950/40 hover:text-cyan-300 flex items-center gap-2"
+                      >
+                        <Share2 className="w-3.5 h-3.5 text-purple-400" />
+                        Partner Flyer Card & QR
                       </button>
                       <button
                         onClick={() => handleNav('/dashboard/wallet')}
-                        className="w-full text-left px-4 py-2 text-slate-300 hover:bg-slate-800 hover:text-white"
+                        className="w-full text-left px-4 py-2.5 text-slate-300 hover:bg-cyan-950/40 hover:text-cyan-300 flex items-center gap-2"
                       >
-                        Wallet & Withdrawals
+                        <Wallet className="w-3.5 h-3.5 text-teal-400" />
+                        Matrix Ledger & Wallet
                       </button>
                       <button
-                        onClick={() => handleNav('/dashboard/affiliate')}
-                        className="w-full text-left px-4 py-2 text-slate-300 hover:bg-slate-800 hover:text-white"
+                        onClick={() => handleNav('/dashboard/profile')}
+                        className="w-full text-left px-4 py-2.5 text-slate-300 hover:bg-cyan-950/40 hover:text-cyan-300"
                       >
-                        Affiliate Center
+                        Web3 ID & Profile
                       </button>
                       {isAdmin && (
                         <button
                           onClick={() => handleNav('/admin')}
-                          className="w-full text-left px-4 py-2 text-purple-400 hover:bg-slate-800"
+                          className="w-full text-left px-4 py-2.5 text-purple-400 hover:bg-purple-950/40 flex items-center gap-2"
                         >
+                          <Shield className="w-3.5 h-3.5" />
                           Super Admin Console
                         </button>
                       )}
-                      <div className="border-t border-slate-800 my-1" />
+                      <div className="border-t border-slate-800/80 my-1" />
                       <button
                         onClick={() => {
                           logout();
                           handleNav('/');
                         }}
-                        className="w-full text-left px-4 py-2 text-rose-400 hover:bg-slate-800 flex items-center gap-2"
+                        className="w-full text-left px-4 py-2.5 text-rose-400 hover:bg-rose-950/40 flex items-center gap-2"
                       >
-                        <LogOut className="w-4 h-4" />
-                        Sign Out
+                        <LogOut className="w-3.5 h-3.5" />
+                        Disconnect / Sign Out
                       </button>
                     </div>
                   )}
@@ -248,17 +289,17 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate }) => {
                 <button
                   id="nav-signin-btn"
                   onClick={() => handleNav('/login')}
-                  className="px-3.5 py-1.5 text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-900 rounded-lg transition-colors"
+                  className="px-3.5 py-1.5 text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-900 rounded-xl transition-colors border border-slate-800"
                 >
                   Sign In
                 </button>
                 <button
                   id="nav-register-btn"
                   onClick={() => handleNav('/register')}
-                  className="px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 rounded-lg shadow-sm transition-all flex items-center gap-1"
+                  className="px-3.5 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 rounded-xl shadow-sm transition-all flex items-center gap-1 border border-cyan-400/30"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  Get Started
+                  Join Matrix
                 </button>
               </div>
             )}
@@ -267,7 +308,7 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate }) => {
             <button
               id="mobile-menu-toggle"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900"
+              className="md:hidden p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-900 border border-slate-800"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -277,46 +318,80 @@ export const Navbar: React.FC<NavbarProps> = ({ currentPath, navigate }) => {
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-b border-slate-800 bg-slate-950 px-4 pt-2 pb-6 space-y-2">
+        <div className="md:hidden border-b border-cyan-500/20 bg-slate-950 px-4 pt-3 pb-6 space-y-2">
           <button
-            onClick={() => handleNav('/dashboard/earn')}
-            className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left text-amber-300 bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20"
+            onClick={() => handleNav('/dashboard/matrix')}
+            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left text-cyan-300 bg-cyan-950/40 border border-cyan-500/30 hover:bg-cyan-900/30"
           >
-            <span className="flex items-center gap-3">
-              <Flame className="w-4 h-4 text-amber-400 animate-pulse" />
-              <span className="font-semibold text-xs">Earn / Micro-Tasks</span>
+            <span className="flex items-center gap-2.5">
+              <Zap className="w-4 h-4 text-cyan-400" />
+              <span className="font-bold text-xs">⚡ 12-Level Matrix Platform</span>
+            </span>
+            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-500/30 text-cyan-300 font-mono">
+              $2.00
+            </span>
+          </button>
+
+          <button
+            onClick={() => handleNav('/dashboard/team')}
+            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-900 border border-slate-800/80"
+          >
+            <span className="flex items-center gap-2.5">
+              <Users className="w-4 h-4 text-emerald-400" />
+              <span className="font-semibold text-xs">🌳 Team Tree Visualizer</span>
+            </span>
+            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300">
+              1x3
+            </span>
+          </button>
+
+          <button
+            onClick={() => handleNav('/dashboard/leaderboard')}
+            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left text-amber-300 bg-amber-950/20 border border-amber-500/30 hover:bg-amber-900/30"
+          >
+            <span className="flex items-center gap-2.5">
+              <Trophy className="w-4 h-4 text-amber-400" />
+              <span className="font-semibold text-xs">🏆 Top Earners Leaderboard</span>
             </span>
             <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/30 text-amber-300">
-              HOT
+              LIVE
             </span>
           </button>
+
+          <button
+            onClick={() => handleNav('/dashboard/partner-card')}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-900 border border-slate-800/80"
+          >
+            <Share2 className="w-4 h-4 text-purple-400" />
+            <span className="font-semibold text-xs">🪪 Partner Card & Flyer QR</span>
+          </button>
+
+          <button
+            onClick={() => handleNav('/dashboard/wallet')}
+            className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left text-slate-300 hover:bg-slate-900 border border-slate-800/80"
+          >
+            <span className="flex items-center gap-2.5">
+              <Wallet className="w-4 h-4 text-emerald-400" />
+              <span className="font-semibold text-xs">💳 Matrix Ledger & Wallet</span>
+            </span>
+            <span className="font-mono text-xs font-bold text-emerald-400">
+              ${formattedUsd}
+            </span>
+          </button>
+
           <a
-            href={FREECASH_AFFILIATE_URL}
+            href="https://bscscan.com"
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => setMobileMenuOpen(false)}
-            className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-900"
+            className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-slate-400 hover:text-cyan-300 text-xs font-mono"
           >
-            <span className="flex items-center gap-3">
-              <CheckSquare className="w-4 h-4 text-emerald-400" />
-              <span className="font-medium text-xs">Verified Paid Tasks</span>
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              BNB Chain Mainnet / BscScan
             </span>
-            <ExternalLink className="w-3.5 h-3.5 opacity-60 text-slate-400" />
+            <ExternalLink className="w-3.5 h-3.5 opacity-60" />
           </a>
-          <button
-            onClick={() => handleNav('/courses')}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-900"
-          >
-            <BookOpen className="w-4 h-4 text-amber-400" />
-            <span className="font-medium text-xs">Academy Courses</span>
-          </button>
-          <button
-            onClick={() => handleNav('/products')}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-slate-300 hover:bg-slate-900"
-          >
-            <Package className="w-4 h-4 text-purple-400" />
-            <span className="font-medium text-xs">Digital Products</span>
-          </button>
+
           <div className="border-t border-slate-800 pt-2 space-y-1">
             <button
               onClick={() => handleNav('/earnings-disclaimer')}

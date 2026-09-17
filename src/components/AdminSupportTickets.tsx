@@ -67,7 +67,9 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({
 
   // Filtered tickets
   const filteredTickets = useMemo(() => {
-    return tickets.filter((t) => {
+    const safeTickets = Array.isArray(tickets) ? tickets : [];
+    return safeTickets.filter((t) => {
+      if (!t) return false;
       // Status filter
       if (statusFilter !== 'all' && t.status !== statusFilter) {
         return false;
@@ -79,11 +81,11 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({
       // Search query
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase().trim();
-        const num = (t.ticketNumber || '').toLowerCase();
+        const num = (t.ticketNumber || t.id || '').toLowerCase();
         const name = (t.userName || '').toLowerCase();
         const email = (t.userEmail || '').toLowerCase();
         const subject = (t.subject || '').toLowerCase();
-        const desc = (t.description || '').toLowerCase();
+        const desc = (t.description || t.message || '').toLowerCase();
         const reply = (t.adminReply || '').toLowerCase();
         return (
           num.includes(query) ||
@@ -100,12 +102,13 @@ export const AdminSupportTickets: React.FC<AdminSupportTicketsProps> = ({
 
   // Statistics calculation
   const stats = useMemo(() => {
-    const total = tickets.length;
-    const open = tickets.filter((t) => t.status === 'open').length;
-    const underReview = tickets.filter((t) => t.status === 'under_review').length;
-    const replied = tickets.filter((t) => t.status === 'replied').length;
-    const resolved = tickets.filter((t) => t.status === 'resolved').length;
-    const closed = tickets.filter((t) => t.status === 'closed').length;
+    const safeTickets = Array.isArray(tickets) ? tickets : [];
+    const total = safeTickets.length;
+    const open = safeTickets.filter((t) => t && t.status === 'open').length;
+    const underReview = safeTickets.filter((t) => t && t.status === 'under_review').length;
+    const replied = safeTickets.filter((t) => t && t.status === 'replied').length;
+    const resolved = safeTickets.filter((t) => t && t.status === 'resolved').length;
+    const closed = safeTickets.filter((t) => t && t.status === 'closed').length;
     return { total, open, underReview, replied, resolved, closed };
   }, [tickets]);
 

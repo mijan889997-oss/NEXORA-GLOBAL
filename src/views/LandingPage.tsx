@@ -19,6 +19,7 @@ import {
 import type { Service, Task, Course } from '../types';
 import { LivePayoutsSection } from '../components/LivePayoutsSection';
 import { ServiceCard } from '../components/ServiceCard';
+import { PublicPlatformStatsBar } from '../components/PublicPlatformStatsBar';
 import { openUdemyAffiliate } from '../config/affiliateLinks';
 
 interface LandingPageProps {
@@ -90,6 +91,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ navigate }) => {
             >
               Browse Verified Tasks
             </button>
+          </div>
+
+          {/* Dynamic Public Platform Stats Bar */}
+          <div className="mt-10 max-w-5xl mx-auto text-left">
+            <PublicPlatformStatsBar
+              variant="hero"
+              onViewLeaderboard={() => navigate('/dashboard/leaderboard')}
+              onViewMatrix={() => navigate('/dashboard/matrix')}
+            />
           </div>
 
           {/* Value Highlights */}

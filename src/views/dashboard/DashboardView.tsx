@@ -39,7 +39,10 @@ import {
   Gift,
   Menu,
   X,
+  Trophy,
+  Zap,
 } from 'lucide-react';
+import { Web3MatrixView } from '../matrix/Web3MatrixView';
 import { WithdrawalsView } from './WithdrawalsView';
 import { InviteAndEarnCard } from '../../components/InviteAndEarnCard';
 import { DailyBonusCard } from '../../components/DailyBonusCard';
@@ -50,6 +53,9 @@ import { TaskDetailModal } from '../../components/TaskDetailModal';
 import { ServiceCard } from '../../components/ServiceCard';
 import { DigitalProductsSection } from '../../components/DigitalProductsSection';
 import { FreelanceMarketplaceView } from '../../components/FreelanceMarketplaceView';
+import { PublicPlatformStatsBar } from '../../components/PublicPlatformStatsBar';
+import { TopEarnersLeaderboard } from '../../components/TopEarnersLeaderboard';
+import { LeaderboardWidget } from '../../components/LeaderboardWidget';
 import { openUdemyAffiliate, openKworkAffiliate, KWORK_AFFILIATE_URL } from '../../config/affiliateLinks';
 import { useUserBalance } from '../../lib/userBalance';
 import {
@@ -79,7 +85,7 @@ interface DashboardViewProps {
   navigate: (path: string) => void;
 }
 
-export const DashboardView: React.FC<DashboardViewProps> = ({ currentSubpath = 'earn', navigate }) => {
+export const DashboardView: React.FC<DashboardViewProps> = ({ currentSubpath = 'matrix', navigate }) => {
   const { user, profile, wallet, refreshMe, apiFetch } = useAuth();
   const {
     points: liveUserPoints,
@@ -91,12 +97,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ currentSubpath = '
     formattedPoints: liveFormattedPoints,
   } = useUserBalance();
 
-  const [activeSection, setActiveSection] = useState<string>(currentSubpath || 'earn');
+  const resolveSection = (sub?: string) => {
+    if (!sub || sub === 'earn' || sub === 'tasks' || sub === 'courses' || sub === 'products' || sub === 'levels') {
+      return 'matrix';
+    }
+    return sub;
+  };
+
+  const [activeSection, setActiveSection] = useState<string>(resolveSection(currentSubpath));
   const [mobileNavOpen, setMobileNavOpen] = useState<boolean>(false);
 
   // Synchronize with URL path and ensure mobile drawer auto-collapses on page load/change
   useEffect(() => {
-    setActiveSection(currentSubpath || 'earn');
+    setActiveSection(resolveSection(currentSubpath));
     setMobileNavOpen(false);
   }, [currentSubpath]);
 
@@ -180,11 +193,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ currentSubpath = '
 
   const isTabActive = (tabId: string) => {
     if (tabId === activeSection) return true;
-    if (tabId === 'earn' && (activeSection === 'timewall' || activeSection === 'micro-tasks')) return true;
+    if (tabId === 'matrix' && (activeSection === 'matrix' || activeSection === 'levels' || activeSection === 'web3-matrix' || activeSection === 'earn')) return true;
+    if (tabId === 'team' && (activeSection === 'team' || activeSection === 'downline')) return true;
+    if (tabId === 'partner-card' && (activeSection === 'partner-card' || activeSection === 'partner' || activeSection === 'flyer')) return true;
+    if (tabId === 'leaderboard' && (activeSection === 'top-earners' || activeSection === 'leaderboard')) return true;
+    if (tabId === 'wallet' && (activeSection === 'wallet' || activeSection === 'ledger')) return true;
     if (tabId === 'withdrawals' && (activeSection === 'withdraw' || activeSection === 'payout')) return true;
-    if (tabId === 'marketplace' && (activeSection === 'marketplace' || activeSection === 'services' || activeSection === 'products')) return true;
     if (tabId === 'referral' && (activeSection === 'affiliate')) return true;
-    if (tabId === 'tasks' && (activeSection === 'microtasks' || activeSection === 'orders')) return true;
     return false;
   };
 
@@ -766,78 +781,64 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ currentSubpath = '
 
   const quickNavTabs = [
     {
-      id: 'earn',
-      label: '🔥 Micro-Tasks',
-      icon: Flame,
-      badge: 'HOT',
+      id: 'matrix',
+      label: '⚡ 12-Level Matrix',
+      icon: Zap,
+      badge: '$2.00',
+      badgeBg: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+    },
+    {
+      id: 'team',
+      label: '🌳 Team Tree View',
+      icon: Users,
+      badge: '1x3 Slots',
+      badgeBg: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
+    },
+    {
+      id: 'leaderboard',
+      label: '🏆 Top Earners',
+      icon: Trophy,
+      badge: 'LIVE',
       badgeBg: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
     },
     {
-      id: 'tasks',
-      label: '✅ Verified Tasks',
-      icon: CheckSquare,
-      badge: 'Escrow',
-      badgeBg: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-    },
-    {
-      id: 'courses',
-      label: '🎓 Academy Courses',
-      icon: BookOpen,
-      badge: 'Udemy',
-      badgeBg: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
-    },
-    {
-      id: 'bonus',
-      label: '🎁 Daily Bonus',
-      icon: Gift,
-      badge: '$0.01 Free',
+      id: 'partner-card',
+      label: '🪪 Partner Card & QR',
+      icon: Share2,
+      badge: 'Flyer',
       badgeBg: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
     },
     {
-      id: 'withdrawals',
-      label: '💰 Withdraw',
-      icon: ArrowUpRight,
-      badge: 'Fast',
+      id: 'wallet',
+      label: '💳 Matrix Ledger & Wallet',
+      icon: Wallet,
+      badge: '100% P2P',
       badgeBg: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
     },
     {
-      id: 'products',
-      label: '📦 Products',
-      icon: Package,
-      badge: 'NEW',
-      badgeBg: 'bg-pink-500/20 text-pink-300 border-pink-500/30',
-    },
-    {
-      id: 'overview',
-      label: '📊 Overview',
-      icon: LayoutDashboard,
-      badge: null,
-      badgeBg: '',
-    },
-    {
-      id: 'wallet',
-      label: '💳 Wallet',
-      icon: Wallet,
-      badge: null,
-      badgeBg: '',
+      id: 'withdrawals',
+      label: '💰 Withdrawals',
+      icon: ArrowUpRight,
+      badge: 'Instant',
+      badgeBg: 'bg-teal-500/20 text-teal-300 border-teal-500/30',
     },
     {
       id: 'referral',
-      label: '👥 Invite & Earn',
+      label: '👥 Direct Referral Bonus',
       icon: Users,
-      badge: '20%',
+      badge: '$1.00',
       badgeBg: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
     },
     {
       id: 'profile',
-      label: '👤 Profile & KYC',
+      label: '👤 Web3 ID / Profile',
       icon: User,
       badge: null,
       badgeBg: '',
     },
     {
       id: 'support',
-      label: '💬 Support',
+      label: '💬 Protocol Support',
       icon: HelpCircle,
       badge: null,
       badgeBg: '',
@@ -848,30 +849,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ currentSubpath = '
     user && (user.email === 'admin@nexvora.global' || user.role === 'SUPER ADMIN' || user.role === 'ADMIN')
   );
 
-  const navItems = [
-    { id: 'earn', label: 'Earn / Micro-Tasks', icon: Flame, badge: 'HOT' },
-    { id: 'tasks', label: 'Verified Paid Tasks', icon: CheckSquare },
-    { id: 'courses', label: 'Academy Courses', icon: BookOpen },
-    { id: 'products', label: 'Digital Products', icon: Package, badge: 'NEW' },
-    { id: 'bonus', label: 'Daily Bonus', icon: Gift, badge: '$0.01' },
+  const navItems: Array<{ id: string; label: string; icon: any; badge?: string | null; isExternal?: boolean }> = [
+    { id: 'matrix', label: '12-Level Matrix ($2)', icon: Zap, badge: 'CORE' },
+    { id: 'team', label: 'Team Tree Visualizer', icon: Users, badge: '1x3 Slots' },
+    { id: 'leaderboard', label: 'Top Earners (লিডারবোর্ড)', icon: Trophy, badge: 'HOT' },
+    { id: 'partner-card', label: 'Partner Card & Flyer QR', icon: Share2, badge: 'NEW' },
+    { id: 'wallet', label: 'Matrix Ledger & Wallet', icon: Wallet },
     { id: 'withdrawals', label: 'Withdrawals', icon: ArrowUpRight, badge: 'Fast' },
-    { id: 'overview', label: 'Dashboard Overview', icon: LayoutDashboard },
-    { id: 'marketplace', label: 'Marketplace Hub', icon: Package, badge: 'Verified' },
-    { id: 'profile', label: 'Profile & KYC', icon: User },
-    ...(isAdminUser
-      ? [
-          { id: 'services', label: 'My Services', icon: Layers },
-          { id: 'jobs', label: 'Freelance Marketplace', icon: Briefcase, isExternal: true },
-        ]
-      : []),
-    { id: 'orders', label: 'My Orders', icon: ShoppingBag },
-    { id: 'affiliate', label: 'Affiliate Center', icon: Share2 },
-    { id: 'referral', label: 'Invite & Earn', icon: Users },
-    { id: 'wallet', label: 'Wallet & Ledger', icon: Wallet },
-    { id: 'transactions', label: 'Transactions', icon: ArrowDownLeft },
-    { id: 'messages', label: 'Messages', icon: MessageSquare },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'support', label: 'Support & Tickets', icon: HelpCircle },
+    { id: 'referral', label: 'Invite & Sponsor Bonuses', icon: Users, badge: '$1.00' },
+    { id: 'profile', label: 'Web3 ID & Profile', icon: User },
+    { id: 'support', label: 'Protocol Support', icon: HelpCircle },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
@@ -920,6 +907,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ currentSubpath = '
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
+      {/* Public Platform Live Stats & Today's Activity Bar */}
+      <PublicPlatformStatsBar
+        variant="dashboard"
+        className="mb-6"
+        onViewLeaderboard={() => handleSubnav('leaderboard')}
+        onViewMatrix={() => handleSubnav('matrix')}
+      />
+
       {/* Mobile Top Navigation & Quick Switcher Bar (Visible only on mobile/tablet < lg) */}
       <div className="lg:hidden mb-6 space-y-3">
         {/* Compact Mobile Section Header & Hamburger Toggle */}
@@ -1250,6 +1245,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ currentSubpath = '
                   <span className="text-[10px] text-slate-500">Processed payouts</span>
                 </div>
               </div>
+
+              {/* Featured Top Earners Leaderboard Widget */}
+              <LeaderboardWidget onViewFullLeaderboard={() => handleSubnav('leaderboard')} />
 
               {/* Live Real-Time Microtasks Feed (Positioned directly below balance metrics) */}
               <div id="live-verified-microtasks-feed" className="p-4 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl bg-slate-900 border border-slate-800 space-y-4 sm:space-y-6 shadow-xl">
@@ -1801,9 +1799,46 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ currentSubpath = '
             </div>
           )}
 
-          {/* Section: EARN / MICRO-TASKS (TIMEWALL) */}
-          {(activeSection === 'earn' || activeSection === 'timewall' || activeSection === 'micro-tasks') && (
-            <EarnMicroTasksView />
+          {/* Section: WEB3 12-LEVEL MATRIX ($2 ACTIVATION) & VISUALIZER */}
+          {(activeSection === 'matrix' || activeSection === 'levels' || activeSection === 'web3-matrix' || activeSection === 'earn') && (
+            <Web3MatrixView
+              initialTab="levels"
+              navigate={navigate}
+              onViewLeaderboard={() => handleSubnav('leaderboard')}
+              onNavigateToTeam={() => handleSubnav('team')}
+              onNavigateToPartnerCard={() => handleSubnav('partner-card')}
+            />
+          )}
+
+          {/* Section: DOWNLINE TEAM TREE */}
+          {(activeSection === 'team' || activeSection === 'downline') && (
+            <Web3MatrixView
+              initialTab="team"
+              navigate={navigate}
+              onViewLeaderboard={() => handleSubnav('leaderboard')}
+              onNavigateToTeam={() => handleSubnav('team')}
+              onNavigateToPartnerCard={() => handleSubnav('partner-card')}
+            />
+          )}
+
+          {/* Section: PARTNER MARKETING CARD & FLYER */}
+          {(activeSection === 'partner-card' || activeSection === 'partner' || activeSection === 'flyer') && (
+            <Web3MatrixView
+              initialTab="partner_card"
+              navigate={navigate}
+              onViewLeaderboard={() => handleSubnav('leaderboard')}
+              onNavigateToTeam={() => handleSubnav('team')}
+              onNavigateToPartnerCard={() => handleSubnav('partner-card')}
+            />
+          )}
+
+          {/* Section: TOP EARNERS LEADERBOARD */}
+          {(activeSection === 'leaderboard' || activeSection === 'top-earners') && (
+            <TopEarnersLeaderboard
+              currentUser={user}
+              onNavigateToTasks={() => handleSubnav('matrix')}
+              onNavigateToMatrix={() => handleSubnav('matrix')}
+            />
           )}
 
           {/* Section: DAILY BONUS & STREAK REWARDS */}

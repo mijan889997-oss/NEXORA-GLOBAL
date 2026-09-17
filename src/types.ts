@@ -21,11 +21,15 @@ export interface User {
   fullName: string;
   username: string;
   phone?: string;
+  whatsapp?: string;
+  telegramUsername?: string;
   role: UserRole;
   status: UserStatus;
   referralCode: string;
   referredBy?: string; // referralCode or userId
   emailVerified: boolean;
+  avatarUrl?: string;
+  lastLoginAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -37,17 +41,22 @@ export interface Profile {
   avatarUrl?: string;
   country?: string;
   city?: string;
+  phone?: string;
+  whatsapp?: string;
+  telegramUsername?: string;
   skills: string[];
   headline?: string;
-  languages: string[];
+  languages?: string[];
   website?: string;
   github?: string;
   linkedin?: string;
-  kycStatus: 'unsubmitted' | 'pending' | 'verified' | 'rejected';
+  kycStatus: 'unsubmitted' | 'pending' | 'verified' | 'rejected' | string;
   kycDocumentType?: string;
   kycDocumentNumber?: string;
   kycSubmittedAt?: string;
   kycNotes?: string;
+  points?: number;
+  balance?: number;
   updatedAt: string;
 }
 
@@ -573,6 +582,7 @@ export interface Dispute {
   againstUserId?: string;
   subject: string;
   description: string;
+  message?: string;
   category: 'order_issue' | 'payment' | 'account' | 'task_submission' | 'other' | string;
   status: 'open' | 'under_review' | 'replied' | 'resolved' | 'closed';
   adminReply?: string;
@@ -622,6 +632,7 @@ export interface SystemSettings {
   videoTaskLimit?: number; // Daily Video Limit (default: 10)
   videoTaskCooldown?: number; // Cooldown Timer in seconds (default: 30)
   videoTaskRewardCoins?: number; // Reward Coins per video (default: 5)
+  platformCreatorBscWallet?: string;
   updatedAt: string;
 }
 
@@ -638,3 +649,166 @@ export interface AuthResponse {
   };
   profile: Profile;
 }
+
+export interface PublicPlatformStats {
+  totalUsers: number;
+  joinedToday: number;
+  activeMembersToday: number;
+  totalTasksCompleted: number;
+  totalPayoutsDistributed: number;
+  totalNetworkCommission: number;
+  totalPayoutsVolume: number;
+  totalMatrixActivations: number;
+  totalMatrixVolume: number;
+  currency: string;
+  updatedAt: string;
+}
+
+export interface LeaderboardEarner {
+  rank: number;
+  userId: string;
+  name: string;
+  username?: string;
+  avatarUrl: string;
+  country?: string;
+  partnerCount?: number;
+  completedTasks: number;
+  totalEarned: number;
+  points: number;
+  matrixLevel?: number;
+  matrixCommissions?: number;
+  upgradeRewards?: number;
+  recycleCycles?: number;
+  badgeType: 'gold' | 'silver' | 'bronze' | 'top10' | 'contributor';
+  crownLabel?: string;
+}
+
+export interface LeaderboardResponse {
+  success: boolean;
+  period: 'today' | 'weekly' | 'all_time' | string;
+  totalParticipants: number;
+  topEarners: LeaderboardEarner[];
+  filterType?: 'all' | 'matrix' | 'tasks';
+  updatedAt: string;
+}
+
+export interface MatrixPartnerSlot {
+  partnerId: string;
+  partnerName: string;
+  partnerUsername?: string;
+  partnerAvatarUrl?: string;
+  partnerWalletAddress?: string;
+  slotNumber: number;
+  filledAt: string;
+  amount: number;
+  isRecycle: boolean;
+  txHash?: string;
+  bscScanUrl?: string;
+}
+
+export interface MatrixLevelState {
+  level: number;
+  cost: number;
+  unlocked: boolean;
+  unlockedAt?: string;
+  slotsFilled: number; // 0, 1, 2, 3
+  recycleCount: number;
+  earnings: number;
+  currentSlots: MatrixPartnerSlot[];
+  lastTxHash?: string;
+  lastBscScanUrl?: string;
+  activationTxHash?: string;
+  activationBscScanUrl?: string;
+}
+
+export interface MatrixAccount {
+  id: string;
+  userId: string;
+  userName: string;
+  userUsername?: string;
+  userAvatarUrl?: string;
+  walletAddress?: string;
+  boundWalletAddress?: string;
+  walletChainId?: number;
+  uplineId: string | null;
+  sponsorId?: string;
+  uplineName?: string;
+  uplineWalletAddress?: string;
+  isActivated: boolean; // $2 activation
+  activatedAt?: string;
+  activationTxHash?: string;
+  activationBscScanUrl?: string;
+  currentMaxLevel: number;
+  totalMatrixEarned: number;
+  totalRecycles: number;
+  directPartnersCount?: number;
+  totalTeamCount?: number;
+  levels: MatrixLevelState[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MatrixTransaction {
+  id: string;
+  type: 'activation' | 'level_upgrade' | 'direct_payout' | 'recycle_payout';
+  level?: number;
+  amountUsd: number;
+  amountCrypto?: string;
+  currency: 'BNB' | 'USDT';
+  fromUserId: string;
+  fromUsername: string;
+  fromWalletAddress: string;
+  toUserId?: string;
+  toUsername?: string;
+  toWalletAddress: string;
+  txHash: string;
+  bscScanUrl: string;
+  network: 'BSC' | 'BSC_TESTNET';
+  status: 'confirmed' | 'pending' | 'failed';
+  blockNumber?: number;
+  timestamp: string;
+}
+
+export interface MatrixTeamNode {
+  id: string;
+  name: string;
+  username: string;
+  walletAddress: string;
+  shortAddress?: string;
+  avatarUrl?: string;
+  level: number;
+  activatedLevels?: number[];
+  directCommissionGenerated?: number;
+  totalEarned: number;
+  recycles: number;
+  isDirect: boolean;
+  isSpillover?: boolean;
+  slotsFilled?: number;
+  joinedAt?: string;
+}
+
+export interface MatrixTeamTreeData {
+  upline: MatrixTeamNode | null;
+  currentUser: MatrixTeamNode;
+  directPartners: MatrixTeamNode[];
+  spillovers: MatrixTeamNode[];
+  totalTeamCount: number;
+  directCount: number;
+  totalTeamVolume: number;
+}
+
+export interface MatrixLiveActivity {
+  id: string;
+  type: 'payout' | 'recycle' | 'upgrade' | 'activation';
+  walletAddress: string;
+  shortAddress: string;
+  username: string;
+  level?: number;
+  amount?: number;
+  message: string;
+  txHash?: string;
+  bscScanUrl?: string;
+  timestamp: string;
+}
+
+
